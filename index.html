@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Working App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+
+        <aside class="panel left-panel">
+
+            <div class="section Name-section">
+                <span id="current-session-title">[Nom-de-Session]</span>
+                <button id="parameter-session-btn" title="Accéder aux paramètres">⚙</button>
+            </div>
+
+            <div class="pomodoro-section">
+                <div class="pomodoro-header-section">
+                    <span id="pomodoro-title">Pomodoro : </span>
+                    
+                    <div class="pomodoro-actions">
+                        <button id="start-timer-btn" title="Démarrer le timer">⏵</button>
+                        <button id="pause-timer-btn" title="Mettre en pause">⏸</button>
+                    </div>
+                </div>
+                <div id="timer-display">25:00</div> 
+            </div>
+
+            <div class="musique-section">
+                 <span id="track-title-display"> 🎵 :  Waiting for music...</span>
+            </div>
+
+            <div class="choose-session-section">
+                <div class="session-header-container">
+                    <span id="all-session-title">Mes sessions : </span>
+                    <button id="add-session-btn" title="Créer une nouvelle session">+</button>
+                    <button id="supp-session-btn" title="Supprimer la session active">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff3131" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>    
+                    </button>
+                </div>
+                <div id="sessions-list"></div>
+            </div>
+
+            <div class="volume-section">
+                <span id="volume-icon">🔊</span>
+                <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5">
+            </div>
+
+        </aside>
+
+        <main class="panel center-panel">
+            <div class="notes-section">
+                <div class="notes-title-section">
+                    <span id="notes-session-title"> Notes :  </span>
+                </div>
+                <div class="notes-write-section">
+                    <div class="line-numbers"></div>
+                    <textarea class="notes-textarea" placeholder="Commencez à écrire vos notes ici..."></textarea>
+                </div>
+            </div>
+        </main>
+
+        <aside class="panel right-panel">
+            <div class="ressources-section">
+                <span id="ressources-title"> Ressources and Files   </span>
+                <span id="lien-title"> Lien 1    </span>
+            </div>
+        </aside>
+    </div>
+    
+    <div id="youtube-player"></div>
+
+    <div id="session-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Créer une nouvelle session</h3>
+            <input type="text" id="new-session-input" placeholder="Nom de la session (ex: Cours de Maths)..." autocomplete="off">
+
+            <div id="modal-time-section" class="modal-form-group">
+                <p> Pomodoro :</p>
+                <input type="number" id="modal-time-work-input" placeholder="25" autocomplete="off">
+                <input type="number" id="modal-time-break-input" placeholder="25" autocomplete="off">
+            </div>            
+
+            <div class="modal-actions">
+                <button id="modal-cancel-btn" class="btn-secondary">Annuler</button>
+                <button id="modal-confirm-btn" class="btn-primary">Créer</button>
+            </div>
+
+
+        </div>
+    </div>   
+
+    <div id="parameter-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Paramètres</h3>
+            
+            <div id="parameter-name-section" class="modal-form-group">
+                <p id="parameter-name-modal-text">Nom de la session :</p>
+                <input type="text" id="edit-name-session-input" placeholder="Nouveau nom..." autocomplete="off">
+            </div>
+
+            <div id="modal-time-section" class="modal-form-group">
+                <p> Pomodoro :</p>
+                <input type="number" id="edit-time-work-input" placeholder="25" autocomplete="off">
+                <input type="number" id="edit-time-break-input" placeholder="25" autocomplete="off">
+            </div>
+            
+            <div class="modal-actions">
+                <button id="parameter-back-btn" class="btn-secondary">Annuler</button>
+                <button id="parameter-save-btn" class="btn-primary">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="script.js"></script>
+</body>
+</html>
