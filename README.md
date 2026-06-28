@@ -11,7 +11,6 @@ L'objectif de Tomatoflow est d'offrir un espace de travail minimaliste, immersif
 * **⏱️ Minuteurs Pomodoro par Session :** Créez des sessions de travail indépendantes (ex: *Développement*, *Maths*, *Rédaction*). Contrairement aux applications classiques, chaque session possède sa propre configuration de temps (ex: 25/5 min pour les tâches légères, 55/5 min pour le *deep work*). Les cycles s'enchaînent automatiquement.
 * **📝 Éditeur de Notes Persistant :** Un espace de prise de notes avec numérotation dynamique des lignes est intégré au centre. Vos écrits sont sauvegardés automatiquement à chaque frappe dans le `localStorage` et sont liés de manière unique à la session active. Changer de session recharge instantanément vos notes.
 * **📻 Streaming Audio Intelligent (Latence Zéro) :** L'application interroge l'API *Radio Browser* pour diffuser des musiques adaptées à votre état (Lofi pour le *Focus*, Jazz pour la *Pause*, Synthwave pour le mode *Boost*). 
-* **⚡ Algorithme de Préchargement (Preload) :** Pour éviter les coupures de 3 secondes liées aux requêtes réseau, un script asynchrone va chercher et prépare la radio du cycle suivant 10 secondes avant la fin du minuteur. À la seconde zéro, la transition musicale est instantanée.
 
 ---
 
@@ -30,4 +29,4 @@ Aucun serveur ni installation de paquets (`npm`) n'est requis. L'application tou
 
 1. Clonez le dépôt :
    ```bash
-   git clone [https://github.com/VOTRE_PSEUDO/tamatoflow.git](https://github.com/VOTRE_PSEUDO/tamatoflow.git)
+   git clone [https://github.com/M1chigan/tamatoflow.git](https://github.com/M1chigan/tamatoflow.git)
