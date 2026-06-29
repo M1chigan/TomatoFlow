@@ -3,7 +3,8 @@ name: Build/Release TomatoFlow
 on:
   release:
     types: [published, created]
-
+  workflow_dispatch:
+  
 permissions:
   contents: write
 
