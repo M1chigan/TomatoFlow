@@ -10,7 +10,6 @@ const DEFAULT_BREAK_DURATION = 5 * 60;
 const MUSIC_MODES = {
     focus:    'lofi',
     pause:    'jazz',
-    boost:    'electronic',
     winddown: 'ambient',
 };  
 
@@ -26,7 +25,6 @@ let currentAudio      = null;
 let nextTrackUrl      = null;
 let nextTrackName     = "";
 let currentMode       = 'focus'; 
-
 
 //================================
 //  DOM Targeting
@@ -110,6 +108,38 @@ function updateBannerTitle(title) {
     if (trackTitleDisplay) trackTitleDisplay.innerText = title;
 }
 
+async function initDefaultStation(mode = 'focus') {
+    const genre = MUSIC_MODES[mode];
+    console.log(`LOG [Init]: Pre-loading default ${genre} station silently on startup...`);
+    updateBannerTitle(`🎵 : Loading ${genre}...`);
+
+    try {
+        const response = await fetch(
+            `https://de1.api.radio-browser.info/json/stations/bytag/${genre}?limit=10&hidebroken=true&order=clickcount`
+        );
+        const stations = await response.json();
+        if (!stations.length) throw new Error('No stations found for startup');
+
+        const station = stations[Math.floor(Math.random() * stations.length)];
+        
+        currentAudio = new Audio(station.url_resolved);
+        currentAudio.volume = 0; // Force total silence
+        
+        updateBannerTitle(`🎵 : Prêt (${station.name})`);
+        console.log(`LOG [Init]: Silent stream "${station.name}" buffering in background.`);
+
+        // FIX: Catch the autoplay rejection quietly without breaking the main try/catch block
+        currentAudio.play().catch(autoplayError => {
+            console.warn("LOG [Init Warning]: Autoplay policy restricted background streaming. Ready for user click.", autoplayError);
+        });
+
+    } catch (error) {
+        console.error("LOG [Init Error]: Failed to silent-load on startup:", error);
+        updateBannerTitle(`🎵 : Radio déconnectée (Cliquez pour charger)`);
+    }
+}
+
+
 async function preloadNextMusic(nextMode) {
     const genre = MUSIC_MODES[nextMode];
     console.log(`LOG [Preload]: Recherche d'une station ${genre} en arrière-plan...`);
@@ -163,20 +193,43 @@ function fetchAndPlayBackgroundMusic(mode = 'focus') {
 }
 
 function playStation(streamUrl) {
-    if (currentAudio) { 
-        currentAudio.pause(); 
-        currentAudio = null; 
-    }
-
-    currentAudio = new Audio(streamUrl);
-    currentAudio.volume = volumeSlider ? volumeSlider.value : 0.5;
+    const maxVolume = volumeSlider ? parseFloat(volumeSlider.value) : 0.5;
+    const newAudio = new Audio(streamUrl);
     
-    const playPromise = currentAudio.play();
+    newAudio.volume = 0;
+    
+    const playPromise = newAudio.play();
 
     if (playPromise !== undefined) {
         playPromise
             .then(() => {
-                console.log("LOG [Player]: Stream playing.");
+                console.log("LOG [Player]: New stream started playing.");
+
+                if (currentAudio) {
+                    const oldAudio = currentAudio; 
+                    const fadeDuration = 7000;     
+                    const intervalStep = 100;     
+                    const totalSteps = fadeDuration / intervalStep;
+                    let currentStep = 0;
+
+                    const fadeInterval = setInterval(() => {
+                        currentStep++;
+                        const progress = currentStep / totalSteps;
+
+                        oldAudio.volume = Math.max(0, maxVolume * (1 - progress));
+                        newAudio.volume = Math.min(maxVolume, maxVolume * progress);
+
+                        if (currentStep >= totalSteps) {
+                            clearInterval(fadeInterval);
+                            oldAudio.pause();
+                            console.log("LOG [Player]: Crossfade complete. Old audio stopped.");
+                        }
+                    }, intervalStep);
+                } else {
+                    newAudio.volume = maxVolume;
+                }
+
+                currentAudio = newAudio;
             })
             .catch(err => {
                 if (err.name === "AbortError") {
@@ -189,9 +242,32 @@ function playStation(streamUrl) {
     }
 }
 
+function fadeInCurrentAudio() {
+    if (!currentAudio) return;
+    
+    const maxVolume = volumeSlider ? parseFloat(volumeSlider.value) : 0.5;
+    const fadeDuration = 2000; 
+    const intervalStep = 100;
+    const totalSteps = fadeDuration / intervalStep;
+    let currentStep = 0;
+
+    currentAudio.play().catch(err => console.error("Fade in play trigger failed:", err));
+
+    const fadeInterval = setInterval(() => {
+        currentStep++;
+        
+        currentAudio.volume = Math.min(maxVolume, maxVolume * (currentStep / totalSteps));
+
+        if (currentStep >= totalSteps) {
+            clearInterval(fadeInterval);
+            console.log("LOG [Player]: Startup track successfully faded in.");
+        }
+    }, intervalStep);
+}
+
+
 function playMusic()  { currentAudio?.play(); }
 function pauseMusic() { currentAudio?.pause(); }
-
 //================================
 //  Timer Logic
 //================================
@@ -213,12 +289,17 @@ function startTimer() {
 
     const currentSession = getActiveSession();
     
-    if (timeLeft === DEFAULT_WORK_DURATION && currentMode === 'focus') {
-        timeLeft = currentSession.workTime;
+    if (timeLeft <= 0) {
+        timeLeft = currentMode === 'focus' ? currentSession.workTime : currentSession.breakTime;
     }
 
-    currentMode = 'focus';
-    fetchAndPlayBackgroundMusic(currentMode);
+    if (currentAudio && currentAudio.volume === 0) {
+        fadeInCurrentAudio();
+    } else if (currentAudio && currentAudio.paused) {
+        playMusic();
+    } else if (!currentAudio) {
+        fetchAndPlayBackgroundMusic(currentMode);
+    }
 
     timerInterval = setInterval(() => {
         if (timeLeft > 0) {
@@ -226,23 +307,17 @@ function startTimer() {
             updateDisplay();
 
             if (timeLeft === 10) {
-                const nextMode = (currentMode === 'focus' || currentMode === 'boost') ? 'pause' : 'focus';
-                updateBannerTitle(`🎵 : Recherche de la prochaine radio...`);
-                
-                preloadNextMusic(nextMode).then(() => {
-                    if (nextTrackName && timeLeft <= 10 && timeLeft > 0) {
-                        updateBannerTitle(`⏳ Prochaine radio : ${nextTrackName}`);
-                    }
-                });
-            }
+                updateBannerTitle(`⏳ Loading next station...`);
 
-            if (timeLeft === 5 * 60 && currentMode !== 'boost') {
-                currentMode = 'boost';
-                fetchAndPlayBackgroundMusic('boost');
+                const nextMode = (currentMode === 'focus') ? 'pause' : 'focus';
+
+                preloadNextMusic(nextMode).then(() => {
+                    fetchAndPlayBackgroundMusic(nextMode);
+                });
             }
             
         } else {
-            if (currentMode === 'focus' || currentMode === 'boost') {
+            if (currentMode === 'focus') {
                 showNotification("✅ Session terminée ! La pause commence.");
                 currentMode = 'pause';
                 timeLeft = currentSession.breakTime;
@@ -253,7 +328,6 @@ function startTimer() {
             }
 
             updateDisplay(); 
-            fetchAndPlayBackgroundMusic(currentMode);
         }
     }, 1000);
 }
@@ -550,7 +624,7 @@ function saveParameterChanges() {
 //================================
 
 document.addEventListener('DOMContentLoaded', () => {
-
+    initDefaultStation();
     if (startBtn) startBtn.addEventListener('click', startTimer);
     if (pauseBtn) pauseBtn.addEventListener('click', pauseTimer);
 
@@ -603,7 +677,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (modalCancelBtn) modalCancelBtn.addEventListener('click', closeSessionModal);
     if (modalConfirmBtn) modalConfirmBtn.addEventListener('click', confirmSessionCreation);
 
-    // FIX : Ajout des touches Entrée / Échap spécifiques sur les nouveaux inputs de temps
     const modalWorkInput = document.getElementById('modal-time-work-input');
     const modalBreakInput = document.getElementById('modal-time-break-input');
     const inputsCreation = [newSessionInput, modalWorkInput, modalBreakInput];

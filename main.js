@@ -17,11 +17,13 @@ function createWindow() {
         resizable: true,
         autoHideMenuBar: true,
         title: 'TomatoFlow',
+        icon: path.join(__dirname, 'build/icon.ico'),
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
-            webSecurity: false,              // Nécessaire pour file:// → API externe
+            webSecurity: false,
             allowRunningInsecureContent: true,
+            autoplayPolicy: 'no-user-gesture-required'
         },
     });
 
@@ -43,7 +45,6 @@ app.whenReady().then(() => {
     });
 });
 
-// Quitte l'application quand toutes les fenêtres sont fermées (sauf sur macOS).
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();

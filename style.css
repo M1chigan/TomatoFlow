@@ -86,7 +86,7 @@ body {
     margin-right: auto;
     font-size: 19px;
     font-weight: 600;
-    color: #ff7028bb;
+    color: rgb(0, 0, 0);
 }
 
 #parameter-session-btn {
@@ -141,12 +141,12 @@ body {
 #pomodoro-title {
     font-size: 22px;
     font-weight: 600;
-    color: #333333;
+    color: rgb(0, 0, 0);
 }
 
 #start-timer-btn {  
-    background-color: rgba(26, 137, 52, 0.3);
-    color: rgb(26, 137, 52);
+    background-color: rgba(26, 137, 52, 0.15);
+    color: rgba(26, 137, 52, 0.5);
     border: none;
     border-radius: 50%;
     width: 28px;
@@ -160,6 +160,12 @@ body {
     transition: background-color 0.2s, transform 0.1s;
     padding: 0;
     line-height: 1;
+}
+
+#start-timer-btn:hover {
+    background-color: rgba(26, 137, 52, 0.6);;
+    transform: scale(1.05);
+
 }
 
 #pause-timer-btn {  
@@ -180,7 +186,7 @@ body {
     line-height: 1;
 }
 
-#start-timer-btn:hover, #pause-timer-btn:hover {
+#pause-timer-btn:hover {
     background-color: rgba(255, 143, 45, 0.6);
     transform: scale(1.05);
 }
@@ -189,7 +195,7 @@ body {
     align-self: center;
     font-size: 40px;
     font-weight: 600;
-    color: #333333;
+    color: rgb(0, 0, 0);
 }
 
 .musique-section {
@@ -205,7 +211,7 @@ body {
 
 #track-title-display { 
     font-weight: bold;
-    color: #ff7028d1;
+    color: rgb(0, 0, 0);
 }
 
 .choose-session-section {
@@ -231,13 +237,13 @@ body {
     margin-right: auto;
     font-size: 20px;
     font-weight: 600;
-    color: #333333;
+    color: rgb(0, 0, 0);
 }
 
 #add-session-btn {
     margin-left: auto;
-    background-color: rgba(26, 137, 52, 0.3);
-    color: rgb(26, 137, 52);
+    background-color: rgba(26, 137, 52, 0.15);
+    color: rgba(26, 137, 52, 0.5);  
     border: none;
     border-radius: 50%;
     width: 28px;
@@ -257,8 +263,8 @@ body {
 }
 
 #supp-session-btn {
-    background-color: rgba(255, 49, 49, 0.33);
-    color: rgba(255, 49, 49, 0.69);
+    background-color: rgba(255, 49, 49, 0.15);
+    color: rgba(255, 49, 49, 0.4);
     border: none;
     border-radius: 50%;
     width: 28px;
@@ -293,8 +299,8 @@ body {
 
 .session-item.active {
     font-weight: 600;
-    color: #ff7028;
-    background-color: rgba(255, 112, 40, 0.08);
+    color: rgb(0, 0, 0);
+    background-color: rgb(140, 140, 140,0.15);
 }
 
 .volume-section {
@@ -318,7 +324,7 @@ body {
 #volume-slider {
     flex: 1;         
     cursor: pointer;
-    accent-color: #ff9f7e; 
+    accent-color: rgb(0, 0, 0); 
 }
 
 /*========================================
@@ -329,6 +335,8 @@ body {
     display: flex;
     flex-direction: column;
     width: 100%;
+    height: 100vh;
+    align-items: stretch;
     background-color: #ffffffd7;
     border-radius: 30px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.229);
@@ -367,6 +375,7 @@ body {
     display: flex;
     flex-direction: column;
     text-align: right;
+    height: 100vh;
     min-width: 30px;
     color: #a0a0a0;              
     user-select: none;  
@@ -507,7 +516,7 @@ body {
 --- Formulaire Interne (Paramètres & Création) ---
 ========================================*/
 
-#parameter-name-section, 
+    #parameter-name-section, 
 #parameter-time-section, 
 #modal-time-section {
     display: flex;
@@ -553,7 +562,7 @@ body {
 
 #parameter-time-section input[type="number"]:focus, 
 #modal-time-section input[type="number"]:focus {
-    border-color: #ff9f7e;
+    border-color: rgb(0, 0, 0);
 }
 
 #parameter-time-section span, #modal-time-section span {
@@ -588,10 +597,10 @@ body {
 .btn-secondary:hover { background-color: #e5e5e5; }
 
 .btn-primary {
-    background-color: #ff7028; 
+    background-color: rgb(0, 0, 0); 
     color: white;
 }
-.btn-primary:hover { background-color: #e25c16; }
+.btn-primary:hover { background-color: rgb(0, 0, 0); }
 
 .btn-danger {
     background-color: #ff3131;

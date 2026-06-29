@@ -62,7 +62,7 @@
                 </div>
                 <div class="notes-write-section">
                     <div class="line-numbers"></div>
-                    <textarea class="notes-textarea" placeholder="Commencez à écrire vos notes ici..."></textarea>
+                    <textarea class="notes-textarea" spellcheck="false"  placeholder="Commencez à écrire vos notes ici..."></textarea>
                 </div>
             </div>
         </main>
@@ -115,6 +115,17 @@
             <div class="modal-actions">
                 <button id="parameter-back-btn" class="btn-secondary">Annuler</button>
                 <button id="parameter-save-btn" class="btn-primary">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="delete-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3>Supprimer la session</h3>
+            <p id="delete-modal-text">Voulez-vous vraiment supprimer cette session ?</p>
+            <div class="modal-actions">
+                <button id="delete-cancel-btn" class="btn-secondary">Annuler</button>
+                <button id="delete-confirm-btn" class="btn-danger" style="background-color: #ff3131; color: white;">Supprimer</button>
             </div>
         </div>
     </div>
