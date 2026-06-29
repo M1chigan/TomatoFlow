@@ -1,22 +1,28 @@
 {
-  "name": "pomodoro-app",
+  "name": "tamatoflow",
   "version": "1.0.0",
-  "description": "My Lofi Pomodoro Timer",
+  "description": "TomatoFlow - My Lofi Pomodoro Timer",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder"
   },
   "build": {
-    "appId": "com.yourname.pomodoro",
+    "appId": "com.M1.TomatoFlow",
+    "productName": "TomatoFlow",
     "win": {
-      "target": "portable"
+      "target": "portable",
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.ico" 
     }
   },
-  "author": "Your Name",
-  "license": "ISC",
+  "author": "M1chigan",
+  "license": "MIT",
   "devDependencies": {
-    "electron": "^latest-version",
-    "electron-builder": "^latest-version"
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.0"
   }
 }
