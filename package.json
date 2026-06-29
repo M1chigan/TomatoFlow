@@ -1,6 +1,6 @@
 {
   "name": "tamatoflow",
-  "version": "1.0.8",
+  "version": "1.0.1",
   "description": "TomatoFlow - My Lofi Pomodoro Timer",
   "main": "main.js",
   "scripts": {
