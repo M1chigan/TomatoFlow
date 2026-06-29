@@ -1,33 +1,37 @@
-name: Build/Release TomatoFlow
-
-on:
-  release:
-    types: [published]
-
-permissions:
-  contents: write
-
-jobs:
-  release:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [windows-latest, macos-latest]
-
-    steps:
-      - name: Check out git repository
-        uses: actions/checkout@v4
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install Dependencies
-        run: npm install
-
-      - name: Build and Publish Electron App
-        run: npm run build -- --publish always
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+{
+  "name": "tamatoflow",
+  "version": "1.0.0",
+  "description": "TomatoFlow - My Lofi Pomodoro Timer",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/M1chigan/TomatoFlow.git"
+  },
+  "build": {
+    "appId": "com.M1.TomatoFlow",
+    "productName": "TomatoFlow",
+    "win": {
+      "target": "portable",
+      "icon": "build/icon.png"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.png"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "M1chigan",
+      "repo": "TomatoFlow"
+    }
+  },
+  "author": "M1chigan",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.0"
+  }
+}
