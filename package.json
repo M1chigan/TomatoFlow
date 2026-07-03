@@ -1,6 +1,6 @@
 {
-  "name": "tomatoflow",
-  "version": "1.0.2",
+  "name": "tamatoflow",
+  "version": "1.0.3",
   "description": "TomatoFlow -  Pomodoro Timer & Deep Work Notebook",
   "main": "main.js",
   "scripts": {
@@ -10,12 +10,14 @@
   "build": {
     "appId": "com.tamatoflow.app",
     "productName": "TomatoFlow",
+    "artifactName": "${productName}.${ext}",
     "win": {
-      "target": "portable"
+      "target": "portable",
+      "icon": "build/icon.ico" 
     },
     "mac": {
       "target": "dmg",
-      "icon": "build/icon.ico" 
+      "icon": "build/icon.incs" 
     }
   },
   "author": "Michigan",

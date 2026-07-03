@@ -23,8 +23,12 @@ let timeLeft          = DEFAULT_WORK_DURATION;
 let timerInterval     = null;
 let currentAudio      = null;
 let nextTrackUrl      = null;
+let oldAudioReference = null;
+let activeFadeInterval = null;
 let nextTrackName     = "";
+let latestStreamUrl = null; 
 let currentMode       = 'focus'; 
+
 
 //================================
 //  DOM Targeting
@@ -34,11 +38,15 @@ const sessionTitleDisplay   = document.getElementById('current-session-title');
 const timerDisplay          = document.getElementById('timer-display'); 
 const startBtn              = document.getElementById('start-timer-btn');
 const pauseBtn              = document.getElementById('pause-timer-btn');
-const trackTitleDisplay    = document.getElementById('track-title-display');
+const trackTitleDisplay     = document.getElementById('track-title-display');
 const textarea              = document.querySelector('.notes-textarea');
-const lineNumbersContainer = document.querySelector('.line-numbers');
+const lineNumbersContainer  = document.querySelector('.line-numbers');
 const volumeSlider          = document.getElementById('volume-slider');
 const volumeIcon            = document.getElementById('volume-icon');
+const vinyl                 = document.querySelector('.lucide-disc-3');
+const refreshBtn            = document.getElementById('refresh-music-btn');
+const wrapper               = document.querySelector('.track-title-wrapper');
+
 
 // Session elements
 const sessionsListContainer = document.getElementById('sessions-list');
@@ -104,14 +112,31 @@ function showNotification(message) {
 //  Background Music (Radio Browser API)
 //========================================
 
-function updateBannerTitle(title) {
-    if (trackTitleDisplay) trackTitleDisplay.innerText = title;
+function checkTitleOverflow(originalText) {
+    if (!wrapper || !trackTitleDisplay) return;
+    trackTitleDisplay.classList.remove('is-scrolling');
+    trackTitleDisplay.innerText = originalText;
+
+    if (trackTitleDisplay.scrollWidth > wrapper.clientWidth) {
+        const spacer = "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0";
+        const decoratedText = originalText + spacer;
+        
+        trackTitleDisplay.innerText = decoratedText + decoratedText;
+        
+        trackTitleDisplay.classList.add('is-scrolling');
+    }
+}
+
+function updateBannerTitle(text) {
+    if (trackTitleDisplay) {
+        checkTitleOverflow(text);
+    }
 }
 
 async function initDefaultStation(mode = 'focus') {
     const genre = MUSIC_MODES[mode];
     console.log(`LOG [Init]: Pre-loading default ${genre} station silently on startup...`);
-    updateBannerTitle(`🎵 : Loading ${genre}...`);
+    updateBannerTitle(`Loading ${genre}...`);
 
     try {
         const response = await fetch(
@@ -123,22 +148,21 @@ async function initDefaultStation(mode = 'focus') {
         const station = stations[Math.floor(Math.random() * stations.length)];
         
         currentAudio = new Audio(station.url_resolved);
-        currentAudio.volume = 0; // Force total silence
+        currentAudio.volume = 0;
         
-        updateBannerTitle(`🎵 : Prêt (${station.name})`);
+        updateBannerTitle(`${station.name}`);
+        if (vinyl) vinyl.style.animationPlayState = 'paused';
         console.log(`LOG [Init]: Silent stream "${station.name}" buffering in background.`);
 
-        // FIX: Catch the autoplay rejection quietly without breaking the main try/catch block
         currentAudio.play().catch(autoplayError => {
             console.warn("LOG [Init Warning]: Autoplay policy restricted background streaming. Ready for user click.", autoplayError);
         });
 
     } catch (error) {
         console.error("LOG [Init Error]: Failed to silent-load on startup:", error);
-        updateBannerTitle(`🎵 : Radio déconnectée (Cliquez pour charger)`);
+        updateBannerTitle(`Radio déconnectée (Cliquez pour charger)`);
     }
 }
-
 
 async function preloadNextMusic(nextMode) {
     const genre = MUSIC_MODES[nextMode];
@@ -165,85 +189,156 @@ async function preloadNextMusic(nextMode) {
     }
 }
 
-function fetchAndPlayBackgroundMusic(mode = 'focus') {
+function fetchAndPlayBackgroundMusic(mode = 'focus', action = "normal") {
     const genre = MUSIC_MODES[mode];
     
+    // FIX: Standardized fade duration definition
+    const fadeDuration = (action === "refresh") ? 3000 : 7000;
+    
+    if (action === "refresh" && refreshBtn) {
+        refreshBtn.classList.add('is-loading');
+    }
+
     if (nextTrackUrl) {
         console.log(`LOG [Music]: Lancement de la station préchargée (${genre}).`);
-        updateBannerTitle(`🎵 : ${nextTrackName || genre}`);
-        playStation(nextTrackUrl);
+        updateBannerTitle(` ${nextTrackName || genre}`);
+        playStation(nextTrackUrl, fadeDuration);
         
         nextTrackUrl = null; 
         nextTrackName = ""; 
     } else {
         console.log(`LOG [Music Backup]: Pas de préchargement, appel direct...`);
-        updateBannerTitle(`🎵 : Chargement ${genre}...`);
+        updateBannerTitle(`Chargement ${genre}...`);
         
         fetch(`https://de1.api.radio-browser.info/json/stations/bytag/${genre}?limit=10&hidebroken=true&order=clickcount`)
             .then(res => res.json())
             .then(stations => {
                 if (stations.length) {
                     const station = stations[Math.floor(Math.random() * stations.length)];
-                    updateBannerTitle(`🎵 : ${station.name}`);
-                    playStation(station.url_resolved);
+                    updateBannerTitle(`${station.name}`);
+                    playStation(station.url_resolved, fadeDuration);
+                } else {
+                    if (refreshBtn) refreshBtn.classList.remove('is-loading');
                 }
             })
-            .catch(err => console.error("Error direct load:", err));
+            .catch(err => {
+                console.error("Error direct load:", err);
+                if (refreshBtn) refreshBtn.classList.remove('is-loading');
+            });
     }
 }
 
-function playStation(streamUrl) {
+function playStation(streamUrl, fadeDuration = 7000) {
+    latestStreamUrl = streamUrl;
+
     const maxVolume = volumeSlider ? parseFloat(volumeSlider.value) : 0.5;
     const newAudio = new Audio(streamUrl);
+    const isTimerRunning = vinyl ? (vinyl.style.animationPlayState === 'running') : false;
     
-    newAudio.volume = 0;
+    const refreshBtn = document.getElementById('refresh-music-btn');
     
-    const playPromise = newAudio.play();
+    if (isTimerRunning) {
+        newAudio.volume = 0;
+        const playPromise = newAudio.play();
 
-    if (playPromise !== undefined) {
-        playPromise
-            .then(() => {
-                console.log("LOG [Player]: New stream started playing.");
+        if (playPromise !== undefined) {
+            playPromise
+                .then(() => {
+                    if (streamUrl !== latestStreamUrl) {
+                        console.log("LOG [Player]: Ghost stream detected and terminated.");
+                        newAudio.pause();
+                        newAudio.src = "";
+                        return;
+                    }
 
-                if (currentAudio) {
-                    const oldAudio = currentAudio; 
-                    const fadeDuration = 7000;     
-                    const intervalStep = 100;     
-                    const totalSteps = fadeDuration / intervalStep;
-                    let currentStep = 0;
+                    const stillRunning = vinyl ? (vinyl.style.animationPlayState === 'running') : false;
+                    if (!stillRunning) {
+                        console.log("LOG [Player]: User paused during buffering. Arming silently.");
+                        newAudio.pause();
+                        newAudio.volume = maxVolume;
+                        if (refreshBtn) refreshBtn.classList.remove('is-loading');
+                        if (currentAudio) currentAudio.pause();
+                        currentAudio = newAudio;
+                        return;
+                    }
 
-                    const fadeInterval = setInterval(() => {
-                        currentStep++;
-                        const progress = currentStep / totalSteps;
-
-                        oldAudio.volume = Math.max(0, maxVolume * (1 - progress));
-                        newAudio.volume = Math.min(maxVolume, maxVolume * progress);
-
-                        if (currentStep >= totalSteps) {
-                            clearInterval(fadeInterval);
-                            oldAudio.pause();
-                            console.log("LOG [Player]: Crossfade complete. Old audio stopped.");
+                    console.log("LOG [Player]: New stream started playing (Active Mode).");
+                    if (refreshBtn) refreshBtn.classList.remove('is-loading');
+                    if (vinyl) vinyl.style.animationPlayState = 'running';
+                    
+                    if (currentAudio) {
+                        if (activeFadeInterval) {
+                            clearInterval(activeFadeInterval);
+                            activeFadeInterval = null;
+                            if (oldAudioReference) {
+                                oldAudioReference.pause();
+                                oldAudioReference.src = "";
+                            }
                         }
-                    }, intervalStep);
-                } else {
-                    newAudio.volume = maxVolume;
-                }
 
-                currentAudio = newAudio;
-            })
-            .catch(err => {
-                if (err.name === "AbortError") {
-                    console.log("LOG [Player]: Lecture annulée par un appel de pause rapide.");
-                } else {
-                    console.error("LOG [Player Error]: Impossible de lire ce flux (Lien mort ou bloqué).", err);
-                    fetchAndPlayBackgroundMusic(currentMode);
-                }
-            });
+                        oldAudioReference = currentAudio;     
+                        const intervalStep = 100;     
+                        const totalSteps = fadeDuration / intervalStep;
+                        let currentStep = 0;
+
+                        activeFadeInterval = setInterval(() => {
+                            currentStep++;
+                            const progress = currentStep / totalSteps;
+
+                            if (oldAudioReference) {
+                                oldAudioReference.volume = Math.max(0, maxVolume * (1 - progress));
+                            }
+                            newAudio.volume = Math.min(maxVolume, maxVolume * progress);
+
+                            if (currentStep >= totalSteps) {
+                                clearInterval(activeFadeInterval);
+                                activeFadeInterval = null;
+                                
+                                if (oldAudioReference) {
+                                    oldAudioReference.pause();
+                                    oldAudioReference = null;
+                                }
+                                console.log("LOG [Player]: Crossfade complete. Old audio stopped.");
+                            }
+                        }, intervalStep);
+                    } else {
+                        newAudio.volume = maxVolume;
+                    }
+
+                    currentAudio = newAudio;
+                })
+                .catch(err => {
+                    if (refreshBtn) refreshBtn.classList.remove('is-loading');
+                    if (err.name === "AbortError") {
+                        console.log("LOG [Player]: Lecture annulée par un appel de pause rapide.");
+                    } else {
+                        console.error("LOG [Player Error]: Impossible de lire ce flux.", err);
+                        // Only retry if this failure belongs to the latest request
+                        if (streamUrl === latestStreamUrl) {
+                            fetchAndPlayBackgroundMusic(currentMode);
+                        }
+                    }
+                });
+        }
+    } 
+    else {
+        console.log("LOG [Player]: New stream successfully armed in PAUSE mode.");
+        if (refreshBtn) refreshBtn.classList.remove('is-loading');
+        if (vinyl) vinyl.style.animationPlayState = 'paused';
+        
+        newAudio.volume = maxVolume;
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.src = "";
+        }
+        currentAudio = newAudio;
     }
 }
 
 function fadeInCurrentAudio() {
     if (!currentAudio) return;
+    
+    if (vinyl) vinyl.style.animationPlayState = 'running';
     
     const maxVolume = volumeSlider ? parseFloat(volumeSlider.value) : 0.5;
     const fadeDuration = 2000; 
@@ -251,11 +346,19 @@ function fadeInCurrentAudio() {
     const totalSteps = fadeDuration / intervalStep;
     let currentStep = 0;
 
+    if (trackTitleDisplay && trackTitleDisplay.innerText.includes('Prêt')) {
+        const match = trackTitleDisplay.innerText.match(/\(([^)]+)\)/);
+        if (match && match[1]) {
+            updateBannerTitle(`${match[1]}`);
+        } else {
+            updateBannerTitle(`${MUSIC_MODES[currentMode]}`);
+        }
+    }
+
     currentAudio.play().catch(err => console.error("Fade in play trigger failed:", err));
 
     const fadeInterval = setInterval(() => {
         currentStep++;
-        
         currentAudio.volume = Math.min(maxVolume, maxVolume * (currentStep / totalSteps));
 
         if (currentStep >= totalSteps) {
@@ -265,9 +368,52 @@ function fadeInCurrentAudio() {
     }, intervalStep);
 }
 
+function playCountdownBeep() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.type = 'sine'; 
+        oscillator.frequency.value = 850;
+        
+        const appVolume = volumeSlider ? parseFloat(volumeSlider.value) : 0.5;
+        const targetVolume = appVolume * 0.7;
+
+        gainNode.gain.setValueAtTime(targetVolume, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.12);
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.12); 
+    } catch (error) {
+        console.error("LOG [Audio]: Failed to play countdown beep:", error);
+    }
+}
 
 function playMusic()  { currentAudio?.play(); }
-function pauseMusic() { currentAudio?.pause(); }
+
+function pauseMusic() {
+    if (activeFadeInterval) {
+        clearInterval(activeFadeInterval);
+        activeFadeInterval = null;
+    }
+
+    if (currentAudio) {
+        currentAudio.pause();
+    }
+
+    if (oldAudioReference) {
+        oldAudioReference.pause();
+        oldAudioReference = null;
+    }
+
+    if (vinyl) vinyl.style.animationPlayState = 'paused';
+    console.log("LOG [Player]: Emergency stop! All audio streams paused instantly.");
+}
+
 //================================
 //  Timer Logic
 //================================
@@ -293,6 +439,8 @@ function startTimer() {
         timeLeft = currentMode === 'focus' ? currentSession.workTime : currentSession.breakTime;
     }
 
+    if (vinyl) vinyl.style.animationPlayState = 'running';
+
     if (currentAudio && currentAudio.volume === 0) {
         fadeInCurrentAudio();
     } else if (currentAudio && currentAudio.paused) {
@@ -308,12 +456,14 @@ function startTimer() {
 
             if (timeLeft === 10) {
                 updateBannerTitle(`⏳ Loading next station...`);
-
                 const nextMode = (currentMode === 'focus') ? 'pause' : 'focus';
 
                 preloadNextMusic(nextMode).then(() => {
                     fetchAndPlayBackgroundMusic(nextMode);
                 });
+            }
+            if (timeLeft <= 7 && timeLeft > 0) {
+                playCountdownBeep();
             }
             
         } else {
@@ -326,7 +476,6 @@ function startTimer() {
                 currentMode = 'focus';
                 timeLeft = currentSession.workTime;
             }
-
             updateDisplay(); 
         }
     }, 1000);
@@ -351,8 +500,12 @@ function getNoteKey() {
 
 function updateLineNumbers() {
     if (!textarea || !lineNumbersContainer) return;
+    
     const lines = textarea.value.split('\n');
-    const lineCount = Math.max(35, lines.length);
+    const computedStyle = window.getComputedStyle(textarea);
+    const lineHeight = parseFloat(computedStyle.lineHeight) || 21;
+    const visibleLines = Math.floor(textarea.clientHeight / lineHeight);
+    const lineCount = Math.max(visibleLines, lines.length);
     
     let linesHTML = '';
     for (let i = 1; i <= lineCount; i++) {
@@ -425,7 +578,6 @@ function renderSessionsList() {
 function selectSession(sessionName) {
     if (activeSessionName === sessionName) return;
 
-    // FIX : On force le nettoyage complet de l'intervalle lors du changement pour éviter l'effet de vitesse
     pauseTimer(); 
 
     activeSessionName = sessionName;
@@ -441,9 +593,6 @@ function selectSession(sessionName) {
     updateDisplay();
 }
 
-/**
- * Retourne l'objet complet de la session active
- */
 function getActiveSession() {
     return sessions.find(s => s.name === activeSessionName) || sessions[0];
 }
@@ -456,7 +605,6 @@ function openSessionModal() {
     if (!sessionModal || !newSessionInput) return;
     newSessionInput.value = ''; 
 
-    // Pré-remplit les valeurs de temps par défaut dans la fenêtre d'ajout
     const modalWorkInput = document.getElementById('modal-time-work-input');
     const modalBreakInput = document.getElementById('modal-time-break-input');
     if (modalWorkInput) modalWorkInput.value = 25;
@@ -484,11 +632,9 @@ function confirmSessionCreation() {
         return;
     }
 
-    // FIX : Récupère les valeurs saisies par l'utilisateur ou applique les valeurs par défaut
     const workMinutes = (modalWorkInput && modalWorkInput.value) ? parseInt(modalWorkInput.value, 10) : 25;
     const breakMinutes = (modalBreakInput && modalBreakInput.value) ? parseInt(modalBreakInput.value, 10) : 5;
 
-    // FIX : Enregistre l'objet de session complet avec les durées configurées
     sessions.push({
         name: name,
         workTime: workMinutes * 60,
@@ -628,6 +774,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (startBtn) startBtn.addEventListener('click', startTimer);
     if (pauseBtn) pauseBtn.addEventListener('click', pauseTimer);
 
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            console.log("LOG [UI]: Refresh button triggered.");
+            fetchAndPlayBackgroundMusic(currentMode, "refresh");
+        });
+    }
+
     if (textarea) {
         textarea.addEventListener('input', () => {
             localStorage.setItem(getNoteKey(), textarea.value);
@@ -739,6 +892,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    window.addEventListener('resize', updateLineNumbers);
     loadSessionsFromStorage();
     renderSessionsList();
     updateDisplay();

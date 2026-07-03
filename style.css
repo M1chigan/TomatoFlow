@@ -203,15 +203,91 @@ body {
     background-color: #ffffffc1;
     border-radius: 30px;
     padding: 10px 15px;  
-    gap: 5px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.229);
     box-sizing: border-box;
+    width: 100%;
     align-items: center;
+    gap: 6px; 
 }
 
-#track-title-display { 
+.lucide-disc-3 {
+    flex-shrink: 0;
+    display: inline-block;
+    animation: spin 3s linear infinite;
+    animation-play-state: paused; 
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.track-title-wrapper {
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 180px; 
+    margin-left: 0;
+    flex-grow: 1;
+}
+
+#track-title-display {
     font-weight: bold;
     color: rgb(0, 0, 0);
+    display: inline-block;
+    white-space: nowrap;
+    will-change: transform;
+}
+
+#track-title-display.is-scrolling {
+    animation: marquee-autoradio-left 12s linear infinite;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+@keyframes marquee-autoradio-left {
+    0% {
+        transform: translateX(0%);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+#refresh-music-btn {
+    margin-left: auto !important;
+    flex-shrink: 0;
+}
+#refresh-music-btn{  
+    width: 28px;
+    height: 28px;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    color: rgb(255, 143, 45);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease, transform 0.2s ease;
+    background-color: rgba(255, 143, 45, 0.3);
+    border-radius: 50%;
+}
+
+#refresh-music-btn:hover {
+    color: rgb(255, 127, 15);
+    transform: scale(1.1); 
+}
+
+#refresh-music-btn:active {
+    transform: scale(0.95); 
+}
+
+#refresh-music-btn:focus {
+    outline: none;
+}
+#refresh-music-btn.is-loading svg {
+    animation: spin 1s linear infinite !important;
 }
 
 .choose-session-section {
@@ -382,6 +458,9 @@ body {
     height: 100%;     
     overflow: hidden;
     flex-shrink: 0;
+    padding-right: 10px;
+    border-right: 0.5px solid #a0a0a0;
+    box-sizing: border-box
 }
 
 .line-numbers span {
