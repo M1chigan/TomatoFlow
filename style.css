@@ -225,8 +225,9 @@ body {
 .track-title-wrapper {
     overflow: hidden;
     white-space: nowrap;
-    max-width: 180px; 
-    margin-left: 0;
+    min-width: 0;
+    max-width: 200px;
+    margin-left: 10px;
     flex-grow: 1;
 }
 
@@ -451,7 +452,6 @@ body {
     display: flex;
     flex-direction: column;
     text-align: right;
-    height: 100vh;
     min-width: 30px;
     color: #a0a0a0;              
     user-select: none;  
@@ -460,7 +460,7 @@ body {
     flex-shrink: 0;
     padding-right: 10px;
     border-right: 0.5px solid #a0a0a0;
-    box-sizing: border-box
+    box-sizing: border-box;
 }
 
 .line-numbers span {
@@ -472,20 +472,56 @@ body {
 
 .notes-textarea {
     flex: 1;   
-    height: 100%;                                  
+    height: 100%;                                                   
     background: transparent;     
     border: none;                
-    outline: none;               
-    resize: none;                
-    font-family: 'Courier New', Courier, monospace;      
+    outline: none;                   
     font-size: 14px;
     line-height: 21px;            
     color: #333333;
     overflow-y: auto;
     padding: 0px 5px;
     margin: 0;
+    box-sizing: border-box;
 }
 
+.notes-textarea:empty::before {
+    content: attr(placeholder);
+    color: #a0a0a0;
+    pointer-events: none;
+    display: block;
+}
+
+/* ==========================================
+   ⚡ Checkboxes & Tasks Alignment
+   ========================================== */
+
+.notes-textarea .task-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 21px;
+}
+
+.notes-textarea .task-checkbox {
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.notes-textarea .task-text {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    color: inherit;
+}
+
+.notes-textarea .task-checkbox:checked + .task-text {
+    text-decoration: line-through;
+    color: #a0a0a0;
+}
 /*========================================
 -------------- Right Panel ---------------
 ========================================*/
@@ -649,6 +685,51 @@ body {
     color: #b0b0b0;
 }
 
+.session-music-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;            
+    margin: 6px 0 12px 0;
+    width: 100%;
+}
+
+.setting-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;   
+    justify-content: flex-start;
+    width: 100%;
+    gap : 10px;
+}
+
+.setting-label {
+    font-size: 10px;
+    color: #333333;
+    width: 95px;          
+    text-align: left;
+    flex-shrink: 0;
+}
+
+.genre-dropdown {
+    background: #ffffff;
+    color: #333333;
+    border: 1px solid #e2e8f0;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    outline: none;
+    flex-grow: 1;         
+    max-width: 240px;
+    gap : 10px;    
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.genre-dropdown:focus {
+    border-color: #ff5555;
+    box-shadow: 0 0 0 2px rgba(255, 85, 85, 0.15);
+}
+
 /*========================================
 ---------- Boutons et Actions ------------
 ========================================*/
@@ -686,3 +767,63 @@ body {
     color: white;
 }
 .btn-danger:hover { background-color: #e02424; }
+
+.update-banner {
+    position: fixed;
+    bottom: 10px;
+    right: 20px;  
+    background: #ffffff;
+    color: #000000;
+    padding: 15px 20px;
+    border-radius: 8px;
+    z-index: 10000;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    box-shadow: 0 0 15px rgba(255, 85, 85, 0.25);
+    border: 1px solid rgba(149, 149, 149, 0.4);   
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center; 
+    gap: 16px;
+}
+
+.update-banner.hidden {
+    display: none;
+}
+
+.update-message {
+    line-height: 1.4;
+    display: block;
+}
+
+.update-link {
+    color: #ff5555; 
+    text-decoration: none;
+    font-weight: bold;
+    margin-left: 6px;
+    border-bottom: 1px solid transparent;
+    display: inline; 
+    position: relative;
+    top: -0.2px; /
+}
+
+.update-link:hover {
+    border-bottom: 1px solid #ff5555;
+}
+
+.close-banner-btn {
+    background: none;
+    border: none;
+    color: #aaaaaa;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    position: relative;
+    top: -1px;
+}
+
+.close-banner-btn:hover {
+    color: #333333; 
+}

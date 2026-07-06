@@ -73,7 +73,7 @@
                 </div>
                 <div class="notes-write-section">
                     <div class="line-numbers"></div>
-                    <textarea class="notes-textarea" spellcheck="false"  placeholder="Commencez à écrire vos notes ici..."></textarea>
+                    <div id="notepad" class="notes-textarea" contenteditable="true" spellcheck="false" placeholder="Commencez à écrire vos notes ici..."></div>
                 </div>
             </div>
         </main>
@@ -99,11 +99,32 @@
                 <input type="number" id="modal-time-break-input" placeholder="25" autocomplete="off">
             </div>            
 
+            <div class="session-music-settings">
+                <div class="setting-group">
+                    <label for="creation-focus-genre">🎯 Focus Genre:</label>
+                    <select id="creation-focus-genre" class="genre-dropdown">
+                        <option value="lofi">🎧 Lofi</option>
+                        <option value="chillout">🌊 Chillout</option>
+                        <option value="classical">🎻 Classical</option>
+                        <option value="ambient">✨ Ambient</option>
+                        <option value="instrumental">🎹 Instrumental</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label for="creation-break-genre">☕ Break Genre:</label>
+                    <select id="creation-break-genre" class="genre-dropdown">
+                        <option value="jazz">🎷 Jazz</option>
+                        <option value="pop">🎤 Pop</option>
+                        <option value="soul">🕺 Soul</option>
+                        <option value="indie">🎸 Indie</option>
+                        <option value="Electronique">🎛️ Electronics</option>
+                    </select>
+                </div>  
+            </div>           
             <div class="modal-actions">
                 <button id="modal-cancel-btn" class="btn-secondary">Annuler</button>
                 <button id="modal-confirm-btn" class="btn-primary">Créer</button>
             </div>
-
 
         </div>
     </div>   
@@ -122,7 +143,29 @@
                 <input type="number" id="edit-time-work-input" placeholder="25" autocomplete="off">
                 <input type="number" id="edit-time-break-input" placeholder="25" autocomplete="off">
             </div>
-            
+
+            <div class="session-music-settings">
+                <div class="setting-group">
+                    <label for="settings-focus-genre">🍅 Focus Genre:</label>
+                    <select id="settings-focus-genre" class="genre-dropdown">
+                        <option value="lofi">🎧 Lofi</option>
+                        <option value="chillout">🌊 Chillout</option>
+                        <option value="classical">🎻 Classical</option>
+                        <option value="ambient"> ✨ Ambient</option>
+                        <option value="instrumental">🎹 Instrumental</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label for="settings-break-genre">🌿 Break Genre:</label>
+                    <select id="settings-break-genre" class="genre-dropdown">
+                        <option value="jazz">🎷 Jazz</option>
+                        <option value="pop">🎤 Pop</option>
+                        <option value="soul">🕺Soul</option>
+                        <option value="indie">🎸 Indie</option>
+                        <option value="electronics">🎛️ Electronics</option>
+                    </select>
+                </div>
+            </div>
             <div class="modal-actions">
                 <button id="parameter-back-btn" class="btn-secondary">Annuler</button>
                 <button id="parameter-save-btn" class="btn-primary">Enregistrer</button>
@@ -139,6 +182,14 @@
                 <button id="delete-confirm-btn" class="btn-danger" style="background-color: #ff3131; color: white;">Supprimer</button>
             </div>
         </div>
+    </div>
+
+    <div id="update-banner" class="update-banner hidden">
+        <span class="update-message">
+            🍅 Une nouvelle version de TomatoFlow est disponible! 
+            <a href="https://github.com/M1chigan/TomatoFlow/releases" target="_blank" class="update-link">Download</a>
+        </span>
+        <button id="close-update-banner" class="close-banner-btn">✕</button>
     </div>
 
     <script src="https://unpkg.com/lucide@latest"></script>

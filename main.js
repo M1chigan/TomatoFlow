@@ -4,9 +4,8 @@
 //  Electron — Main Process
 //================================
 
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain} = require('electron');
 const path = require('path');
-
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
 /** @type {BrowserWindow | null} */
@@ -19,11 +18,13 @@ function createWindow() {
         title: 'TomatoFlow',
         icon: path.join(__dirname, 'build/icon.ico'),
         webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: true,
-            contextIsolation: false,
+            contextIsolation: true,
             webSecurity: false,
             allowRunningInsecureContent: true,
-            autoplayPolicy: 'no-user-gesture-required'
+            autoplayPolicy: 'no-user-gesture-required',
+            devTools: !app.isPackaged
         },
     });
 
@@ -50,3 +51,20 @@ app.on('window-all-closed', () => {
         app.quit();
     }
 });
+
+ipcMain.handle('get-app-version', () => {
+    return app.getVersion(); 
+});
+
+if (app.isPackaged) {
+        Menu.setApplicationMenu(null);
+
+        mainWindow.webContents.on('before-input-event', (event, input) => {
+            const isControlI = input.control && input.key.toLowerCase() === 'i';
+            const isF12 = input.key === 'F12';
+
+            if (isControlI || isF12) {
+                event.preventDefault(); 
+            }
+        });
+    }

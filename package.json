@@ -1,6 +1,6 @@
 {
   "name": "tamatoflow",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "TomatoFlow -  Pomodoro Timer & Deep Work Notebook",
   "main": "main.js",
   "scripts": {

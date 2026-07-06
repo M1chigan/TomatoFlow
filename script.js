@@ -7,12 +7,6 @@
 const DEFAULT_WORK_DURATION = 25 * 60;  
 const DEFAULT_BREAK_DURATION = 5 * 60;
 
-const MUSIC_MODES = {
-    focus:    'lofi',
-    pause:    'jazz',
-    winddown: 'ambient',
-};  
-
 //================================
 //  State Variables
 //================================
@@ -39,7 +33,7 @@ const timerDisplay          = document.getElementById('timer-display');
 const startBtn              = document.getElementById('start-timer-btn');
 const pauseBtn              = document.getElementById('pause-timer-btn');
 const trackTitleDisplay     = document.getElementById('track-title-display');
-const textarea              = document.querySelector('.notes-textarea');
+const notepad               = document.getElementById('notepad');
 const lineNumbersContainer  = document.querySelector('.line-numbers');
 const volumeSlider          = document.getElementById('volume-slider');
 const volumeIcon            = document.getElementById('volume-icon');
@@ -58,6 +52,11 @@ const sessionModal          = document.getElementById('session-modal');
 const newSessionInput       = document.getElementById('new-session-input');
 const modalCancelBtn        = document.getElementById('modal-cancel-btn');
 const modalConfirmBtn       = document.getElementById('modal-confirm-btn');
+const creationFocusSelect   = document.getElementById('creation-focus-genre');
+const creationBreakSelect   = document.getElementById('creation-break-genre');
+const settingsFocusSelect   = document.getElementById('settings-focus-genre');
+const settingsBreakSelect   = document.getElementById('settings-break-genre');
+
 
 //Session Supp window elements
 const deleteModal           = document.getElementById('delete-modal');
@@ -112,6 +111,14 @@ function showNotification(message) {
 //  Background Music (Radio Browser API)
 //========================================
 
+function getGenreForMode(mode) {
+    const currentSession = getActiveSession();
+    if (mode === 'focus') {
+        return currentSession.focusGenre || 'lofi';
+    }
+    return currentSession.breakGenre || 'jazz'; 
+}
+
 function checkTitleOverflow(originalText) {
     if (!wrapper || !trackTitleDisplay) return;
     trackTitleDisplay.classList.remove('is-scrolling');
@@ -134,7 +141,7 @@ function updateBannerTitle(text) {
 }
 
 async function initDefaultStation(mode = 'focus') {
-    const genre = MUSIC_MODES[mode];
+    const genre = getGenreForMode(mode);
     console.log(`LOG [Init]: Pre-loading default ${genre} station silently on startup...`);
     updateBannerTitle(`Loading ${genre}...`);
 
@@ -165,7 +172,7 @@ async function initDefaultStation(mode = 'focus') {
 }
 
 async function preloadNextMusic(nextMode) {
-    const genre = MUSIC_MODES[nextMode];
+    const genre = getGenreForMode(nextMode);
     console.log(`LOG [Preload]: Recherche d'une station ${genre} en arrière-plan...`);
 
     try {
@@ -190,9 +197,8 @@ async function preloadNextMusic(nextMode) {
 }
 
 function fetchAndPlayBackgroundMusic(mode = 'focus', action = "normal") {
-    const genre = MUSIC_MODES[mode];
+    const genre = getGenreForMode(mode);
     
-    // FIX: Standardized fade duration definition
     const fadeDuration = (action === "refresh") ? 3000 : 7000;
     
     if (action === "refresh" && refreshBtn) {
@@ -351,7 +357,7 @@ function fadeInCurrentAudio() {
         if (match && match[1]) {
             updateBannerTitle(`${match[1]}`);
         } else {
-            updateBannerTitle(`${MUSIC_MODES[currentMode]}`);
+            updateBannerTitle(`${getGenreForMode(currentMode)}`);
         }
     }
 
@@ -489,7 +495,7 @@ function pauseTimer() {
 }
 
 //================================
-//  Notes Management Logic
+//  Notes Management Logic 
 //================================
 
 function getNoteKey() {
@@ -499,12 +505,13 @@ function getNoteKey() {
 }
 
 function updateLineNumbers() {
-    if (!textarea || !lineNumbersContainer) return;
+    if (!notepad || !lineNumbersContainer) return;
     
-    const lines = textarea.value.split('\n');
-    const computedStyle = window.getComputedStyle(textarea);
+    // Use innerText to reliably count text lines in a contenteditable div
+    const lines = notepad.innerText.split('\n');
+    const computedStyle = window.getComputedStyle(notepad);
     const lineHeight = parseFloat(computedStyle.lineHeight) || 21;
-    const visibleLines = Math.floor(textarea.clientHeight / lineHeight);
+    const visibleLines = Math.floor(notepad.clientHeight / lineHeight);
     const lineCount = Math.max(visibleLines, lines.length);
     
     let linesHTML = '';
@@ -515,14 +522,196 @@ function updateLineNumbers() {
 }
 
 window.switchSessionNotes = function() {
-    if (!textarea) return;
+    if (!notepad) return;
     const key = getNoteKey();
     const savedNote = localStorage.getItem(key);
     
-    textarea.value = savedNote !== null ? savedNote : '';
+    // Use innerHTML to restore native checkbox components correctly
+    notepad.innerHTML = savedNote !== null ? savedNote : '';
     updateLineNumbers();
 };
 
+//================================
+//  Auto-Save & Interaction Events
+//================================
+
+if (notepad) {
+    notepad.addEventListener('input', () => {
+        const key = getNoteKey();
+        localStorage.setItem(key, notepad.innerHTML);
+        updateLineNumbers();
+    });
+
+    notepad.addEventListener('click', (event) => {
+        if (event.target.classList.contains('task-checkbox')) {
+            const key = getNoteKey();
+            setTimeout(() => {
+                localStorage.setItem(key, notepad.innerHTML);
+            }, 10);
+        }
+    });
+
+notepad.addEventListener('keydown', (event) => {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    const range = selection.getRangeAt(0);
+
+    if (event.ctrlKey && event.key.toLowerCase() === 'b') {
+        event.preventDefault();
+
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+        const range = selection.getRangeAt(0);
+
+        const startContainer = range.startContainer;
+        const currentElement = startContainer.nodeType === Node.ELEMENT_NODE 
+            ? startContainer 
+            : startContainer.parentElement;
+
+        const existingTaskRow = currentElement?.closest('.task-row');
+
+        if (!existingTaskRow) {
+            const taskRow = document.createElement('div');
+            taskRow.className = 'task-row';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'task-checkbox';
+
+            const taskText = document.createElement('span');
+            taskText.className = 'task-text';
+            taskText.innerHTML = '&nbsp;'; 
+
+            taskRow.appendChild(checkbox);
+            taskRow.appendChild(taskText);
+
+            range.deleteContents();
+            range.insertNode(taskRow);
+
+            range.setStart(taskText, 0);
+            range.setEnd(taskText, 0);
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            updateLineNumbers();
+            localStorage.setItem(getNoteKey(), notepad.innerHTML);
+            return;
+        }
+    }
+
+    if (event.key === 'Tab') {
+        event.preventDefault(); 
+
+        const tabNode = document.createTextNode('\u00A0\u00A0\u00A0\u00A0');
+        
+        range.insertNode(tabNode);
+
+        range.setStartAfter(tabNode);
+        range.setEndAfter(tabNode);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        updateLineNumbers();
+        localStorage.setItem(getNoteKey(), notepad.innerHTML);
+        return;
+    }
+
+    if (event.key === 'Enter') {
+        const targetNode = range.startContainer;
+        const taskRow = targetNode.nodeType === Node.ELEMENT_NODE 
+            ? targetNode.closest('.task-row') 
+            : targetNode.parentElement.closest('.task-row');
+
+        if (taskRow) {
+            event.preventDefault();
+            const taskText = taskRow.querySelector('.task-text');
+
+            const newTaskRow = document.createElement('div');
+            newTaskRow.className = 'task-row';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'task-checkbox';
+
+            const newTaskText = document.createElement('span');
+            newTaskText.className = 'task-text';
+
+            if (taskText) {
+                const trailingRange = range.cloneRange();
+                trailingRange.setEndAfter(taskText);
+                const extractedContent = trailingRange.extractContents();
+
+                if (extractedContent.textContent.replace(/\u00A0/g, ' ').trim() === '') {
+                    newTaskText.innerHTML = '&nbsp;';
+                } else {
+                    newTaskText.appendChild(extractedContent);
+                }
+
+                if (taskText.innerHTML.replace(/\u00A0/g, ' ').trim() === '') {
+                    taskText.innerHTML = '&nbsp;';
+                }
+            } else {
+                newTaskText.innerHTML = '&nbsp;';
+            }
+
+            newTaskRow.appendChild(checkbox);
+            newTaskRow.appendChild(newTaskText);
+            
+            taskRow.after(newTaskRow);
+
+            const newRange = document.createRange();
+            newRange.setStart(newTaskText, 0);
+            newRange.setEnd(newTaskText, 0);
+            selection.removeAllRanges();
+            selection.addRange(newRange);
+
+            updateLineNumbers();
+            localStorage.setItem(getNoteKey(), notepad.innerHTML);
+            return;
+        }
+    }
+
+    if (event.key === 'Backspace') {
+        const targetNode = range.startContainer;
+        
+        const taskRow = targetNode.nodeType === Node.ELEMENT_NODE 
+            ? targetNode.closest('.task-row') 
+            : targetNode.parentElement.closest('.task-row');
+
+        if (taskRow) {
+            const taskText = taskRow.querySelector('.task-text');
+            if (taskText) {
+                const checkRange = range.cloneRange();
+                checkRange.setStart(taskText, 0);
+                checkRange.setEnd(range.startContainer, range.startOffset);
+                
+                const textBeforeCursor = checkRange.toString().replace(/\u00A0/g, ' ').trim();
+
+                if (textBeforeCursor === '') {
+                    event.preventDefault();
+                    
+                    const plainLine = document.createElement('div');
+                    
+                    plainLine.innerHTML = (taskText.innerHTML === '&nbsp;' || taskText.innerHTML === '') 
+                        ? '<br>' 
+                        : taskText.innerHTML;
+                    
+                    taskRow.replaceWith(plainLine);
+                    
+                    const newRange = document.createRange();
+                    newRange.selectNodeContents(plainLine);
+                    newRange.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(newRange);
+                    
+                    updateLineNumbers();
+                    localStorage.setItem(getNoteKey(), notepad.innerHTML);
+                }
+            }
+        }
+    }
+});
+}
 //================================
 //  Session Management & Interface
 //================================
@@ -544,7 +733,13 @@ function loadSessionsFromStorage() {
         }
     }
     if (!Array.isArray(sessions) || sessions.length === 0) {
-        sessions = [{ name: "Ma première Session", workTime: DEFAULT_WORK_DURATION, breakTime: DEFAULT_BREAK_DURATION }];
+        sessions = [{ 
+            name: "Ma première Session", 
+            workTime: DEFAULT_WORK_DURATION, 
+            breakTime: DEFAULT_BREAK_DURATION,
+            focusGenre: "lofi",
+            breakGenre: "jazz"
+        }];
     }
     if (storedActive && sessions.some(s => s.name === storedActive)) {
         activeSessionName = storedActive;
@@ -610,6 +805,9 @@ function openSessionModal() {
     if (modalWorkInput) modalWorkInput.value = 25;
     if (modalBreakInput) modalBreakInput.value = 5;
 
+    if (creationFocusSelect) creationFocusSelect.value = 'lofi';
+    if (creationBreakSelect) creationBreakSelect.value = 'jazz';
+
     sessionModal.classList.add('open'); 
     newSessionInput.focus(); 
 }
@@ -635,10 +833,15 @@ function confirmSessionCreation() {
     const workMinutes = (modalWorkInput && modalWorkInput.value) ? parseInt(modalWorkInput.value, 10) : 25;
     const breakMinutes = (modalBreakInput && modalBreakInput.value) ? parseInt(modalBreakInput.value, 10) : 5;
 
+    const focusGenre = creationFocusSelect ? creationFocusSelect.value : 'lofi';
+    const breakGenre = creationBreakSelect ? creationBreakSelect.value : 'jazz';
+
     sessions.push({
         name: name,
         workTime: workMinutes * 60,
-        breakTime: breakMinutes * 60
+        breakTime: breakMinutes * 60,
+        focusGenre: focusGenre,
+        breakGenre: breakGenre
     });
 
     saveSessionsToStorage();
@@ -715,6 +918,8 @@ function openParameterModal() {
     const currentSession = getActiveSession();
     if (workInput) workInput.value = currentSession.workTime / 60;
     if (breakInput) breakInput.value = currentSession.breakTime / 60;
+    if (settingsFocusSelect) settingsFocusSelect.value = currentSession.focusGenre || 'lofi';
+    if (settingsBreakSelect) settingsBreakSelect.value = currentSession.breakGenre
 
     if (parameterModal) parameterModal.classList.add('open');
 }
@@ -739,12 +944,18 @@ function saveParameterChanges() {
 
     const oldNoteKey = getNoteKey();
     const currentNotes = localStorage.getItem(oldNoteKey);
-
     const currentSession = getActiveSession();
     
+    const oldWorkTime   = currentSession.workTime;
+    const oldBreakTime  = currentSession.breakTime;
+    const oldFocusGenre = currentSession.focusGenre;
+    const oldBreakGenre = currentSession.breakGenre;
+
     currentSession.name = newName;
     if (workInput && workInput.value) currentSession.workTime = parseInt(workInput.value, 10) * 60;
     if (breakInput && breakInput.value) currentSession.breakTime = parseInt(breakInput.value, 10) * 60;
+    if (settingsFocusSelect) currentSession.focusGenre = settingsFocusSelect.value;
+    if (settingsBreakSelect) currentSession.breakGenre = settingsBreakSelect.value;
 
     activeSessionName = newName;
 
@@ -757,12 +968,63 @@ function saveParameterChanges() {
     saveSessionsToStorage();
     renderSessionsList();
     
-    pauseTimer();
-    currentMode = 'focus';
-    timeLeft = currentSession.workTime; 
+    const durationChanged = (currentMode === 'focus' && currentSession.workTime !== oldWorkTime) ||
+                            (currentMode === 'pause' && currentSession.breakTime !== oldBreakTime);
+
+    if (durationChanged) {
+        pauseTimer();
+        timeLeft = currentMode === 'focus' ? currentSession.workTime : currentSession.breakTime; 
+        updateDisplay();
+    }
+
+    const genreChanged = (currentMode === 'focus' && currentSession.focusGenre !== oldFocusGenre) ||
+                         (currentMode === 'pause' && currentSession.breakGenre !== oldBreakGenre);
+
+
+    if (genreChanged) {
+        console.log(`[Parameters] Genre changed mid-session. Refreshing stream for mode: ${currentMode}`);
+        fetchAndPlayBackgroundMusic(currentMode, "refresh");
+    }
+
     updateDisplay();
     closeParameterModal();
     showNotification("✏️ Paramètres mis à jour !");
+}
+
+//================================
+//  Auto-Update Checker Logic
+//================================
+
+const GITHUB_REPOSITORY = 'M1chigan/TomatoFlow'; 
+
+async function checkLatestRelease() {
+    const banner = document.getElementById('update-banner');
+    const closeBtn = document.getElementById('close-update-banner');
+
+    if (!banner || !closeBtn) return;
+
+    closeBtn.addEventListener('click', () => {
+        banner.classList.add('hidden');
+    });
+
+    try {
+        const currentVersion = await window.electronAPI.getVersion();
+
+        const response = await fetch(`https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest`);
+        if (!response.ok) return;
+
+        const data = await response.json();
+        
+        // Clean tag name (e.g., converts "v1.0.4" to "1.0.4")
+        const latestVersion = data.tag_name.replace('v', '').trim();
+
+        // Compare the dynamic version with GitHub's latest tag
+        if (latestVersion !== currentVersion) {
+            banner.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error("Failed to check for updates via GitHub API:", error);
+    }
 }
 
 //================================
@@ -770,7 +1032,21 @@ function saveParameterChanges() {
 //================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    initDefaultStation();
+    
+//================================
+//        Initialization 
+//================================
+    loadSessionsFromStorage();
+    renderSessionsList();
+    updateDisplay();
+    window.switchSessionNotes();
+    initDefaultStation(currentMode);
+    checkLatestRelease();
+
+//================================
+//        Event Listeners
+//================================
+
     if (startBtn) startBtn.addEventListener('click', startTimer);
     if (pauseBtn) pauseBtn.addEventListener('click', pauseTimer);
 
@@ -778,33 +1054,6 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshBtn.addEventListener('click', () => {
             console.log("LOG [UI]: Refresh button triggered.");
             fetchAndPlayBackgroundMusic(currentMode, "refresh");
-        });
-    }
-
-    if (textarea) {
-        textarea.addEventListener('input', () => {
-            localStorage.setItem(getNoteKey(), textarea.value);
-            updateLineNumbers();
-        });
-
-        textarea.addEventListener('scroll', () => {
-            if (lineNumbersContainer) lineNumbersContainer.scrollTop = textarea.scrollTop;
-        });
-
-        textarea.addEventListener('keydown', (e) => {
-            if (e.key === 'Tab') {
-                e.preventDefault(); 
-                
-                const start = textarea.selectionStart;
-                const end = textarea.selectionEnd;
-                const currentValue = textarea.value;
-
-                const tabSpaces = "    "; 
-                textarea.value = currentValue.substring(0, start) + tabSpaces + currentValue.substring(end);
-                textarea.selectionStart = textarea.selectionEnd = start + tabSpaces.length;
-
-                textarea.dispatchEvent(new Event('input'));
-            }
         });
     }
 
@@ -822,6 +1071,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 volumeIcon.textContent = "🔈";
             } else {
                 volumeIcon.textContent = "🔊";
+            }
+        });
+    }
+
+    // Live update radio if user tweaks selections within the Settings panel directly
+    if (settingsFocusSelect) {
+        settingsFocusSelect.addEventListener('change', (e) => {
+            const currentSession = getActiveSession();
+            currentSession.focusGenre = e.target.value;
+            saveSessionsToStorage();
+            if (currentMode === 'focus') {
+                fetchAndPlayBackgroundMusic('focus', 'refresh');
+            }
+        });
+    }
+
+    if (settingsBreakSelect) {
+        settingsBreakSelect.addEventListener('change', (e) => {
+            const currentSession = getActiveSession();
+            currentSession.breakGenre = e.target.value;
+            saveSessionsToStorage();
+            if (currentMode === 'pause') {
+                fetchAndPlayBackgroundMusic('pause', 'refresh');
             }
         });
     }
@@ -893,8 +1165,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.addEventListener('resize', updateLineNumbers);
-    loadSessionsFromStorage();
-    renderSessionsList();
-    updateDisplay();
-    window.switchSessionNotes();
 });
