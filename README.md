@@ -1,32 +1,44 @@
-# 🍅 Tomatoflow
+# 🍅 TomatoFlow
 
-Tomatoflow est une application web de productivité avancée basée sur la méthode Pomodoro. Développée en **JavaScript natif (Vanilla JS)**, elle intègre un gestionnaire de sessions personnalisables, un éditeur de texte synchronisé et un système de streaming audio intelligent avec préchargement asynchrone à latence zéro.
+TomatoFlow est une application de bureau dédiée à la productivité avancée et basée sur la méthode Pomodoro. Développée en **JavaScript natif (Vanilla JS)** et propulsée par **Electron**, elle offre un espace de travail minimaliste, immersif et entièrement autonome.
 
-L'objectif de Tomatoflow est d'offrir un espace de travail minimaliste, immersif et entièrement autonome, sans dépendance ni framework lourd.
+<p align="center">
+  <img src="./images/interface-complete.png" alt="TomatoFlow Interface" width="800">
+</p>
 
 ---
 
 ## ✨ Fonctionnalités clés
 
-* **⏱️ Minuteurs Pomodoro par Session :** Créez des sessions de travail indépendantes (ex: *Développement*, *Maths*, *Rédaction*). Contrairement aux applications classiques, chaque session possède sa propre configuration de temps (ex: 25/5 min pour les tâches légères, 55/5 min pour le *deep work*). Les cycles s'enchaînent automatiquement.
-* **📝 Éditeur de Notes Persistant :** Un espace de prise de notes avec numérotation dynamique des lignes est intégré au centre. Vos écrits sont sauvegardés automatiquement à chaque frappe dans le `localStorage` et sont liés de manière unique à la session active. Changer de session recharge instantanément vos notes.
-* **📻 Streaming Audio Intelligent (Latence Zéro) :** L'application interroge l'API *Radio Browser* pour diffuser des musiques adaptées à votre état (Lofi pour le *Focus*, Jazz pour la *Pause*, Synthwave pour le mode *Boost*). 
+* **⏱️ Minuteurs Pomodoro par Session :** Créez des sessions de travail indépendantes (ex: *Développement*, *Maths*). Chaque session possède sa propre configuration de temps (ex: 25/5 min ou 55/5 min).
+* **⛓️ Système de Flow Séquentiel :** Enchaînez automatiquement des sessions différentes (ex: *Maths ➔ Informatique ➔ Physique*). Dès qu'un cycle se termine, l'application passe seule à la suite. Chaque session conserve ses notes, ses timers et ses musiques.
+* **📝 Éditeur de Notes Persistant :** Un espace de prise de notes avec numérotation dynamique, sauvegardé automatiquement dans le `localStorage` et lié de manière unique à la session active.
+* **📻 Streaming Audio Intelligent :** Connexion directe à l'API *Radio Browser* pour diffuser des musiques adaptées à votre état (Lofi pour le *Focus*, Jazz pour la *Pause*, Synthwave pour le mode *Boost*).
+
+---
+
+## 📸 Aperçu des Modules
+
+<p align="center">
+  <img src="./images/creation-session.png" alt="Création de Session & Flow" width="390" style="margin-right: 10px;">
+  <img src="./images/parametres.png" alt="Paramètres de l'application" width="390">
+</p>
 
 ---
 
 ## 🛠️ Stack Technique
 
-* **HTML5 :** Structure sémantique, modales de configuration et gestion adaptative.
-* **CSS3 :** Architecture moderne à 3 panneaux, Flexbox, variables CSS, effets de flou d'arrière-plan (*backdrop-filter*) et animations fluides.
-* **JavaScript (ES6+) :** Programmation asynchrone (`fetch`, `Promises`), gestion avancée des intervalles (`setInterval`), manipulation dynamique du DOM et API Audio native.
-* **Web Storage API :** Persistance locale intégrale (`localStorage`) des sessions, des temps personnalisés et des notes utilisateur.
+* **Framework de Bureau :** Electron (Runtime Chromium & Node.js)
+* **Frontend :** HTML5 sémantique & CSS3 moderne (Architecture à 3 panneaux, Flexbox, backdrop-filter).
+* **Logic Core :** JavaScript ES6+ asynchrone (`fetch`, `Promises`) et API Audio native.
+* **Persistance :** Web Storage API (`localStorage`).
 
 ---
 
-## 🚀 Installation locale
+## 🚀 Téléchargement et Utilisation
 
-Aucun serveur ni installation de paquets (`npm`) n'est requis. L'application tourne entièrement côté client.
+L'application est fournie en version **portable**, aucune installation sur votre système n'est requise.
 
-1. Clonez le dépôt :
-   ```bash
-   git clone [https://github.com/M1chigan/tamatoflow.git](https://github.com/M1chigan/tamatoflow.git)
+1. Rendez-vous dans l'onglet **Releases** de ce dépôt GitHub.
+2. Téléchargez le fichier exécutable correspondant à votre système (`TomatoFlow.exe` pour Windows ou `.dmg` pour macOS).
+3. Double-cliquez sur le fichier téléchargé pour lancer instantanément TomatoFlow.  
