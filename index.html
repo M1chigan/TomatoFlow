@@ -59,11 +59,24 @@
                 <div id="sessions-list"></div>
             </div>
 
-            <div class="volume-section">
-                <span id="volume-icon">🔊</span>
-                <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5">
+            <div class="panel flow-section">
+                <div class="flow-header-container">
+                    <div class="flow-header-left">
+                        <span id="flow-title">Le Flow :</span>
+                        <div id="current-flow-wrapper">
+                            <span id="current-flow-session">-</span>
+                        </div>
+                    </div>
+                    
+                    <button id="clear-flow-btn" title="Vider le Flow">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff3131" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                    </button>
+                </div>
+                
+                <div id="flow-list">
+                    <div class="flow-empty-placeholder">Glissez vos sessions ici pour créer un enchaînement...</div>
+                </div>
             </div>
-
         </aside>
 
         <main class="panel center-panel">
@@ -82,6 +95,11 @@
             <div class="ressources-section">
                 <span id="ressources-title"> Ressources and Files   </span>
                 <span id="lien-title"> Lien 1    </span>
+            </div>
+            
+            <div class="volume-section">
+                <span id="volume-icon">🔊</span>
+                <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.5">
             </div>
         </aside>
     </div>

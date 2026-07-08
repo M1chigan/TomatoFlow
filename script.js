@@ -11,18 +11,19 @@ const DEFAULT_BREAK_DURATION = 5 * 60;
 //  State Variables
 //================================
 
-let sessions          = [{ name: "Ma première Session", workTime: DEFAULT_WORK_DURATION, breakTime: DEFAULT_BREAK_DURATION }]; 
-let activeSessionName = "Ma première Session";
-let timeLeft          = DEFAULT_WORK_DURATION;
-let timerInterval     = null;
-let currentAudio      = null;
-let nextTrackUrl      = null;
-let oldAudioReference = null;
+let sessions           = [{ name: "Ma première Session", workTime: DEFAULT_WORK_DURATION, breakTime: DEFAULT_BREAK_DURATION }]; 
+let activeSessionName  = "Ma première Session";
+let timeLeft           = DEFAULT_WORK_DURATION;
+let timerInterval      = null;
+let currentAudio       = null;
+let nextTrackUrl       = null;
+let oldAudioReference  = null;
 let activeFadeInterval = null;
-let nextTrackName     = "";
-let latestStreamUrl = null; 
-let currentMode       = 'focus'; 
-
+let nextTrackName      = "";
+let latestStreamUrl    = null; 
+let currentMode        = 'focus'; 
+const usedStations     = new Set();
+let flowQueue          = [];
 
 //================================
 //  DOM Targeting
@@ -111,6 +112,40 @@ function showNotification(message) {
 //  Background Music (Radio Browser API)
 //========================================
 
+function pickStation(stations) {
+    const fresh = stations.filter(s => !usedStations.has(s.stationuuid));
+    if (!fresh.length) usedStations.clear(); // reset si tout a été joué
+    const pick = fresh[Math.floor(Math.random() * fresh.length)];
+    usedStations.add(pick.stationuuid);
+    return pick;
+}
+
+async function fetchStations(genre) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    // Recherche en parallèle par tag ET par nom
+    const [byTag, byName] = await Promise.all([
+        fetch(
+            `https://de1.api.radio-browser.info/json/stations/bytag/${genre}?limit=20&hidebroken=true&order=votes&reverse=true&codec=MP3&bitrateMin=128`,
+            { signal: controller.signal }
+        ).then(r => r.json()).catch(() => []),
+        fetch(
+            `https://de1.api.radio-browser.info/json/stations/byname/${genre}?limit=20&hidebroken=true&order=votes&reverse=true&codec=MP3&bitrateMin=128`,
+            { signal: controller.signal }
+        ).then(r => r.json()).catch(() => []),
+    ]);
+
+    clearTimeout(timeout);
+
+    const seen = new Set();
+    return [...byTag, ...byName].filter(s => {
+        if (seen.has(s.stationuuid)) return false;
+        seen.add(s.stationuuid);
+        return true;
+    });
+}
+
 function getGenreForMode(mode) {
     const currentSession = getActiveSession();
     if (mode === 'focus') {
@@ -146,14 +181,10 @@ async function initDefaultStation(mode = 'focus') {
     updateBannerTitle(`Loading ${genre}...`);
 
     try {
-        const response = await fetch(
-            `https://de1.api.radio-browser.info/json/stations/bytag/${genre}?limit=10&hidebroken=true&order=clickcount`
-        );
-        const stations = await response.json();
+        const stations = await fetchStations(genre);
         if (!stations.length) throw new Error('No stations found for startup');
-
-        const station = stations[Math.floor(Math.random() * stations.length)];
-        
+        const station = pickStation(stations);
+                
         currentAudio = new Audio(station.url_resolved);
         currentAudio.volume = 0;
         
@@ -176,14 +207,10 @@ async function preloadNextMusic(nextMode) {
     console.log(`LOG [Preload]: Recherche d'une station ${genre} en arrière-plan...`);
 
     try {
-        const response = await fetch(
-            `https://de1.api.radio-browser.info/json/stations/bytag/${genre}?limit=10&hidebroken=true&order=clickcount`
-        );
-        const stations = await response.json();
+        const stations = await fetchStations(genre);
         if (!stations.length) throw new Error('No stations found');
+        const station = pickStation(stations);
 
-        const station = stations[Math.floor(Math.random() * stations.length)];
-        
         nextTrackUrl = station.url_resolved;
         nextTrackName = station.name; 
         
@@ -216,21 +243,20 @@ function fetchAndPlayBackgroundMusic(mode = 'focus', action = "normal") {
         console.log(`LOG [Music Backup]: Pas de préchargement, appel direct...`);
         updateBannerTitle(`Chargement ${genre}...`);
         
-        fetch(`https://de1.api.radio-browser.info/json/stations/bytag/${genre}?limit=10&hidebroken=true&order=clickcount`)
-            .then(res => res.json())
-            .then(stations => {
-                if (stations.length) {
-                    const station = stations[Math.floor(Math.random() * stations.length)];
-                    updateBannerTitle(`${station.name}`);
-                    playStation(station.url_resolved, fadeDuration);
-                } else {
-                    if (refreshBtn) refreshBtn.classList.remove('is-loading');
-                }
-            })
-            .catch(err => {
-                console.error("Error direct load:", err);
+    fetchStations(genre)
+        .then(stations => {
+            if (stations.length) {
+                const station = pickStation(stations);
+                updateBannerTitle(`${station.name}`);
+                playStation(station.url_resolved, fadeDuration);
+            } else {
                 if (refreshBtn) refreshBtn.classList.remove('is-loading');
-            });
+            }
+        })
+        .catch(err => {
+            console.error("Error direct load:", err);
+            if (refreshBtn) refreshBtn.classList.remove('is-loading');
+        });
     }
 }
 
@@ -439,21 +465,16 @@ function updateDisplay() {
 function startTimer() {
     if (timerInterval !== null) return;
 
-    const currentSession = getActiveSession();
+    let currentSession = getActiveSession();
     
     if (timeLeft <= 0) {
         timeLeft = currentMode === 'focus' ? currentSession.workTime : currentSession.breakTime;
     }
 
     if (vinyl) vinyl.style.animationPlayState = 'running';
-
-    if (currentAudio && currentAudio.volume === 0) {
-        fadeInCurrentAudio();
-    } else if (currentAudio && currentAudio.paused) {
-        playMusic();
-    } else if (!currentAudio) {
-        fetchAndPlayBackgroundMusic(currentMode);
-    }
+    if (currentAudio && currentAudio.volume === 0) fadeInCurrentAudio();
+    else if (currentAudio && currentAudio.paused) playMusic();
+    else if (!currentAudio) fetchAndPlayBackgroundMusic(currentMode);
 
     timerInterval = setInterval(() => {
         if (timeLeft > 0) {
@@ -463,26 +484,38 @@ function startTimer() {
             if (timeLeft === 10) {
                 updateBannerTitle(`⏳ Loading next station...`);
                 const nextMode = (currentMode === 'focus') ? 'pause' : 'focus';
-
-                preloadNextMusic(nextMode).then(() => {
-                    fetchAndPlayBackgroundMusic(nextMode);
-                });
+                preloadNextMusic(nextMode).then(() => fetchAndPlayBackgroundMusic(nextMode));
             }
-            if (timeLeft <= 7 && timeLeft > 0) {
-                playCountdownBeep();
-            }
+            if (timeLeft <= 7 && timeLeft > 0) playCountdownBeep();
             
         } else {
+            currentSession = getActiveSession();
+
             if (currentMode === 'focus') {
-                showNotification("✅ Session terminée ! La pause commence.");
+                showNotification(`✅ Focus terminé ! La pause de ${activeSessionName} commence.`);
                 currentMode = 'pause';
                 timeLeft = currentSession.breakTime;
+                updateDisplay();
             } else {
-                showNotification("💪 Pause terminée ! Retour au travail.");
+                showNotification("💪 Pause terminée ! Relance immédiate du Flow...");
+                
+                clearInterval(timerInterval);
+                timerInterval = null;
+
+                if (flowQueue.length > 0) {
+                    const nextSessionName = flowQueue.shift(); 
+                    selectSession(nextSessionName); 
+                } else {
+                    selectSession(activeSessionName); 
+                }
+
+                renderFlowList();
+                
                 currentMode = 'focus';
-                timeLeft = currentSession.workTime;
+                timeLeft = 0; 
+                startTimer(); 
+                return;
             }
-            updateDisplay(); 
         }
     }, 1000);
 }
@@ -760,6 +793,17 @@ function renderSessionsList() {
         if (session.name === activeSessionName) {
             sessionItem.classList.add('active');
         }
+
+        sessionItem.setAttribute('draggable', true);
+        
+        sessionItem.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', session.name);
+            sessionItem.style.opacity = '0.5'; 
+        });
+
+        sessionItem.addEventListener('dragend', () => {
+            sessionItem.style.opacity = '1'; 
+        })
         
         sessionItem.textContent = `- ${session.name}`;
         sessionItem.addEventListener('click', () => {
@@ -784,12 +828,124 @@ function selectSession(sessionName) {
     const currentSession = getActiveSession();
     currentMode = 'focus';
     timeLeft = currentSession.workTime; 
-    
+    renderFlowList();
     updateDisplay();
 }
 
 function getActiveSession() {
     return sessions.find(s => s.name === activeSessionName) || sessions[0];
+}
+
+//================================
+//        Gestion des flows
+//================================
+
+function initFlowDragAndDrop() {
+    const flowListContainer = document.getElementById('flow-list');
+    const clearFlowBtn = document.getElementById('clear-flow-btn');
+
+    if (!flowListContainer || !clearFlowBtn) return;
+
+    flowListContainer.addEventListener('dragenter', (e) => { e.preventDefault(); flowListContainer.classList.add('drag-over'); });
+    flowListContainer.addEventListener('dragover', (e) => e.preventDefault());
+    flowListContainer.addEventListener('dragleave', () => flowListContainer.classList.remove('drag-over'));
+    
+    flowListContainer.addEventListener('drop', (e) => {
+        e.preventDefault();
+        flowListContainer.classList.remove('drag-over');
+        const sessionName = e.dataTransfer.getData('text/plain');
+        if (sessionName && e.dataTransfer.types.includes('text/plain')) {
+            addSessionToFlow(sessionName);
+        }
+    });
+
+    clearFlowBtn.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        clearFlowBtn.classList.add('trash-hover'); 
+    });
+
+    clearFlowBtn.addEventListener('dragleave', () => {
+        clearFlowBtn.classList.remove('trash-hover');
+    });
+
+    clearFlowBtn.addEventListener('drop', (e) => {
+        e.preventDefault();
+        clearFlowBtn.classList.remove('trash-hover');
+        
+        const flowIndex = e.dataTransfer.getData('text/flow-index');
+        
+        if (flowIndex !== '') {
+            flowQueue.splice(parseInt(flowIndex, 10), 1);
+            renderFlowList();
+            showNotification("🗑️ Session retirée du Flow.");
+        }
+    });
+}
+
+function addSessionToFlow(sessionName) {
+    const sessionExists = sessions.some(s => s.name === sessionName);
+    if (!sessionExists) return;
+
+    flowQueue.push(sessionName);
+    renderFlowList();
+}
+
+function renderFlowList() {
+    const flowListContainer = document.getElementById('flow-list');
+    const currentFlowSessionElem = document.getElementById('current-flow-session');
+    
+    if (!flowListContainer) return;
+
+    if (currentFlowSessionElem) {
+        const sessionName = activeSessionName ? activeSessionName : "Aucune";
+        currentFlowSessionElem.textContent = sessionName;
+        currentFlowSessionElem.classList.remove('is-scrolling');
+        
+        setTimeout(() => {
+            const wrapper = document.getElementById('current-flow-wrapper');
+            if (wrapper && currentFlowSessionElem.scrollWidth > wrapper.clientWidth) {
+                // Duplicates text with spaces so the -50% translateX animation loops seamlessly
+                currentFlowSessionElem.textContent = `${sessionName} \u00A0\u00A0\u00A0\u00A0 ${sessionName} \u00A0\u00A0\u00A0\u00A0`;
+                currentFlowSessionElem.classList.add('is-scrolling');
+            }
+        }, 50);
+    }
+
+    flowListContainer.innerHTML = '';
+
+    if (flowQueue.length === 0) {
+        flowListContainer.innerHTML = `<div class="flow-empty-placeholder">Glissez vos sessions ici pour créer un enchaînement...</div>`;
+        return;
+    }
+
+    flowQueue.forEach((sessionName, index) => {
+        if (index > 0) {
+            const chainConnector = document.createElement('div');
+            chainConnector.classList.add('flow-chain-connector');
+            chainConnector.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-link">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+            `;
+            flowListContainer.appendChild(chainConnector);
+        }
+
+        const flowItem = document.createElement('div');
+        flowItem.classList.add('flow-item');
+        flowItem.textContent = `${index + 1}. ${sessionName}`;
+        
+        flowItem.setAttribute('draggable', true);
+        flowItem.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/flow-index', index);
+            flowItem.style.opacity = '0.4';
+        });
+        flowItem.addEventListener('dragend', () => {
+            flowItem.style.opacity = '1';
+        });
+
+        flowListContainer.appendChild(flowItem);
+    });
 }
 
 //================================
@@ -1042,6 +1198,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.switchSessionNotes();
     initDefaultStation(currentMode);
     checkLatestRelease();
+    initFlowDragAndDrop()
+    renderFlowList();
 
 //================================
 //        Event Listeners

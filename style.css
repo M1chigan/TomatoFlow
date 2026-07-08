@@ -31,9 +31,10 @@ body {
 
 .app-container {
     display: flex;
-    gap: 15px; 
+    gap: 1%;
     width: 95vw;
-    height: 90vh;
+    height: 92vh;
+    padding: 1%;
 }
 
 .panel {
@@ -49,21 +50,31 @@ body {
 ========================================*/
 
 .left-panel {
-    flex: 1;
+    flex: 0 0 24.5%;
     display: flex;
     flex-direction: column; 
-    gap: 15px;
+    box-sizing: border-box;
+    gap: 12px;
+    min-width: 0;
 }
 
 .center-panel {
-    flex: 2; 
+    flex: 0 0 49%; 
     display: flex;
-    flex-direction: column; 
+    flex-direction: column;
+    box-sizing: border-box; 
     gap: 15px;
+    min-width: 0;
 }
 
 .right-panel {
-    flex: 1;
+    display: flex;
+    flex: 0 0 24.5%;
+    box-sizing: border-box;
+    flex-direction: column;
+    gap: 15px;
+    min-width: 0;
+    align-items: stretch;
 }
 
 /*========================================
@@ -291,6 +302,10 @@ body {
     animation: spin 1s linear infinite !important;
 }
 
+/*========================================
+--------- Gestion des sessions  ----------
+========================================*/
+
 .choose-session-section {
     display: flex;
     flex-direction: column;
@@ -300,6 +315,7 @@ body {
     gap: 10px;
     box-sizing: border-box;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.229);
+    max-height: 28.57%;
 }
 
 .session-header-container {
@@ -360,6 +376,20 @@ body {
     transform: scale(1.1);
 }
 
+#sessions-list{
+    overflow: hidden;
+    overflow-y: auto;
+}
+
+#sessions-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#sessions-list::-webkit-scrollbar-thumb {
+    background: #cccccc86; 
+    border-radius: 10px; 
+}
+
 .session-item {
     padding: 8px 12px;
     cursor: pointer;
@@ -380,28 +410,168 @@ body {
     background-color: rgb(140, 140, 140,0.15);
 }
 
-.volume-section {
-    margin-top: auto;
+/*========================================
+----------- Gestion des flows  ------------
+========================================*/
+
+.flow-section {
     display: flex;
-    background-color: #ffffffc1;
-    border-radius: 30px;
-    padding: 10px 15px;  
-    gap: 10px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.229);
+    flex-direction: column;
+    background-color: #ffffff;
+    border-radius: 20px; 
+    padding: 5% 5%;
     box-sizing: border-box;
+    gap: 4%;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.229);
+    height: 45%;
+}
+
+.flow-header-container {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
+    margin-bottom: 0.5%;
+    width: 100%;
+    flex-shrink: 0;
 }
 
-#volume-icon {
+.flow-header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+}
+
+#flow-title {
+    font-weight: bold;
     font-size: 16px;
-    user-select: none;
-    cursor: pointer;
+    color: #000000;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
-#volume-slider {
-    flex: 1;         
+#current-flow-wrapper {
+    display: flex;
+    align-items: center;
+    background-color: #e0f2fe;
+    border: 1px solid #bae6fd;
+    border-radius: 12px;
+    padding: 2px 10px;
+    max-width: 50%;         
+    overflow: hidden;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+#current-flow-session {
+    color: #2a8bbf;
+    font-size: 15px;
+    font-weight: bold;
+    display: inline-block;
+    white-space: nowrap;
+    will-change: transform;
+}
+
+#current-flow-session.is-scrolling {
+    animation: marquee-autoradio-left 12s linear infinite;
+}
+
+#clear-flow-btn {
+    background: #fff5f5;
+    border: none;
+    border-radius: 20%;
+    width: 50px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    accent-color: rgb(0, 0, 0); 
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+#clear-flow-btn:hover {
+    background: #ffe3e3;
+}
+
+#flow-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px; 
+    padding: 8px;
+    flex: 1; 
+    min-height: 0; 
+    overflow-y: auto;          
+    overflow-x: hidden; 
+    border: 1px solid #e2e8f0;                                
+    background-color: #f8fafc;     
+    border-radius: 16px;
+    box-sizing: border-box;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+#flow-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#flow-list::-webkit-scrollbar-track {
+    border-radius: 16px;
+    background: transparent;  
+    margin: 0;             
+}
+
+#flow-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;       
+    border-radius: 16px;       
+}
+
+#flow-list.drag-over {
+    background-color: #f0f7ff;
+    border-color: #007bff;
+}
+
+.flow-empty-placeholder {
+    font-size: 13px;
+    color: #a0aec0;
+    text-align: center;
+    margin: auto 0;         
+    padding: 10px;
+    font-style: italic;
+    pointer-events: none;      
+}
+
+.flow-item {
+    font-size: 14px;
+    padding: 8px 12px; 
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    color: #333333;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.flow-chain-connector {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #94a3b8; 
+    width: 100%;
+    margin: -3px 0; 
+    pointer-events: none; 
+}
+
+.flow-chain-connector svg {
+    transform: rotate(45deg);
 }
 
 /*========================================
@@ -448,6 +618,8 @@ body {
     box-sizing: border-box;
 }
 
+
+
 .line-numbers {
     display: flex;
     flex-direction: column;
@@ -492,8 +664,19 @@ body {
     display: block;
 }
 
+
+.notes-textarea::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notes-textarea::-webkit-scrollbar-thumb {
+    background: #cccccc86; 
+    border-radius: 10px; 
+}
+
+
 /* ==========================================
-   ⚡ Checkboxes & Tasks Alignment
+         Checkboxes & Tasks Alignment
    ========================================== */
 
 .notes-textarea .task-row {
@@ -529,25 +712,60 @@ body {
 .ressources-section {
     display: flex;
     flex-direction: column;
-    background-color: #fffcfc00;
-    border-radius: 30px;
-    padding: 25px;
+
+    background-color: #ffffff; 
+    width: 100%;
+    height: 30%;
+    border-radius: 24px; 
+    padding: 20px;
     gap: 10px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.229);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04); 
     box-sizing: border-box;
 }
 
 #ressources-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     color: #333333; 
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 }
 
 #lien-title {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     color: #555555;
+}
+
+/*===========================
+------- Volume slider -------
+===========================*/
+
+.volume-section {
+    margin-top: auto;
+    display: flex;
+    background-color: #ffffffc1;
+    border-radius: 30px;
+    padding: 10px 15px;  
+    gap: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.229);
+    box-sizing: border-box;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+}
+
+#volume-icon {
+    font-size: 16px;
+    user-select: none;
+    cursor: pointer;
+}
+
+#volume-slider {
+    flex: 1;         
+    cursor: pointer;
+    accent-color: rgb(0, 0, 0);
+    min-width: 0; 
+    width: 100%;
 }
 
 /*========================================
