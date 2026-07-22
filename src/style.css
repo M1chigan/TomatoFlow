@@ -13,18 +13,6 @@ body {
     height: 100vh;
 }
 
-#youtube-player {
-    position: fixed;
-    bottom: 0;
-    right: 0;
-    width: 250px;
-    height: 250px;
-    opacity: 0.01; 
-    pointer-events: none;
-    display: block !important; 
-    visibility: visible !important;
-}
-
 /*========================================
 -------------- Main Window ---------------
 ========================================*/
@@ -397,6 +385,8 @@ body {
     color: #555555;
     font-size: 15px;
     transition: background-color 0.2s, color 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .session-item:hover {
@@ -553,6 +543,8 @@ body {
     align-items: center;
     box-sizing: border-box;
     animation: fadeIn 0.2s ease-in-out;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 @keyframes fadeIn {
@@ -1045,3 +1037,4 @@ body {
 .close-banner-btn:hover {
     color: #333333; 
 }
+

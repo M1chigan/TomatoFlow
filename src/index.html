@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Working App</title>
+    <title>TomatoFlow</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
@@ -14,46 +14,46 @@
 <body>
     <div class="app-container">
 
+        <!-- PANEL GAUCHE -->
         <aside class="panel left-panel">
 
             <div class="section Name-section">
                 <span id="current-session-title">[Nom-de-Session]</span>
-                <button id="parameter-session-btn" title="Accéder aux paramètres">⚙</button>
+                <button type="button" id="parameter-session-btn" title="Accéder aux paramètres">⚙</button>
             </div>
 
             <div class="pomodoro-section">
                 <div class="pomodoro-header-section">
-                    <span id="pomodoro-title">Pomodoro : </span>
-                    
+                    <span id="pomodoro-title">Pomodoro :</span>
                     <div class="pomodoro-actions">
-                        <button id="start-timer-btn" title="Démarrer le timer">⏵</button>
-                        <button id="pause-timer-btn" title="Mettre en pause">⏸</button>
+                        <button type="button" id="start-timer-btn" title="Démarrer le timer">⏵</button>
+                        <button type="button" id="pause-timer-btn" title="Mettre en pause">⏸</button>
                     </div>
                 </div>
                 <div id="timer-display">25:00</div> 
             </div>
 
             <div class="musique-section">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-disc3-icon lucide-disc-3"><circle cx="12" cy="12" r="10"/><path d="M6 12c0-1.7.7-3.2 1.8-4.2"/><circle cx="12" cy="12" r="2"/><path d="M18 12c0 1.7-.7 3.2-1.8 4.2"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-disc-3"><circle cx="12" cy="12" r="10"/><path d="M6 12c0-1.7.7-3.2 1.8-4.2"/><circle cx="12" cy="12" r="2"/><path d="M18 12c0 1.7-.7 3.2-1.8 4.2"/></svg>
                 <div class="track-title-wrapper">
-                    <span id="track-title-display">  Waiting for music...</span>
+                    <span id="track-title-display">Waiting for music...</span>
                 </div>
                 <button type="button" id="refresh-music-btn" title="Rafraîchir la musique">
-                <svg xmlns="http://www.w3.org/2000/svg" width="17" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-ccw-icon lucide-refresh-ccw">
-                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                    <path d="M3 3v5h5"/>
-                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-                    <path d="M16 16h5v5"/>
-                </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="17" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-ccw">
+                        <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                        <path d="M3 3v5h5"/>
+                        <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                        <path d="M16 16h5v5"/>
+                    </svg>
                 </button>
             </div>
 
             <div class="choose-session-section">
                 <div class="session-header-container">
-                    <span id="all-session-title">Mes sessions : </span>
-                    <button id="add-session-btn" title="Créer une nouvelle session">+</button>
-                    <button id="supp-session-btn" title="Supprimer la session active">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff3131" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>    
+                    <span id="all-session-title">Mes sessions :</span>
+                    <button type="button" id="add-session-btn" title="Créer une nouvelle session">+</button>
+                    <button type="button" id="supp-session-btn" title="Supprimer la session active">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff3131" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>    
                     </button>
                 </div>
                 <div id="sessions-list"></div>
@@ -68,7 +68,7 @@
                         </div>
                     </div>
                     
-                    <button id="clear-flow-btn" title="Vider le Flow">
+                    <button type="button" id="clear-flow-btn" title="Vider le Flow">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff3131" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                     </button>
                 </div>
@@ -79,10 +79,11 @@
             </div>
         </aside>
 
+        <!-- PANEL CENTRE -->
         <main class="panel center-panel">
             <div class="notes-section">
                 <div class="notes-title-section">
-                    <span id="notes-session-title"> Notes :  </span>
+                    <span id="notes-session-title">Notes :</span>
                 </div>
                 <div class="notes-write-section">
                     <div class="line-numbers"></div>
@@ -91,10 +92,11 @@
             </div>
         </main>
 
+        <!-- PANEL DROITE -->
         <aside class="panel right-panel">
             <div class="ressources-section">
-                <span id="ressources-title"> Ressources and Files   </span>
-                <span id="lien-title"> Lien 1    </span>
+                <span id="ressources-title">Ressources and Files</span>
+                <span id="lien-title">Lien 1</span>
             </div>
             
             <div class="volume-section">
@@ -106,15 +108,16 @@
     
     <div id="youtube-player"></div>
 
+    <!-- MODALE : CREATION SESSION -->
     <div id="session-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>Créer une nouvelle session</h3>
             <input type="text" id="new-session-input" placeholder="Nom de la session (ex: Cours de Maths)..." autocomplete="off">
 
-            <div id="modal-time-section" class="modal-form-group">
-                <p> Pomodoro :</p>
+            <div id="creation-time-section" class="modal-form-group">
+                <p>Pomodoro :</p>
                 <input type="number" id="modal-time-work-input" placeholder="25" autocomplete="off">
-                <input type="number" id="modal-time-break-input" placeholder="25" autocomplete="off">
+                <input type="number" id="modal-time-break-input" placeholder="5" autocomplete="off">
             </div>            
 
             <div class="session-music-settings">
@@ -135,18 +138,18 @@
                         <option value="pop">🎤 Pop</option>
                         <option value="soul">🕺 Soul</option>
                         <option value="indie">🎸 Indie</option>
-                        <option value="Electronique">🎛️ Electronics</option>
+                        <option value="electronics">🎛️ Electronics</option>
                     </select>
                 </div>  
             </div>           
             <div class="modal-actions">
-                <button id="modal-cancel-btn" class="btn-secondary">Annuler</button>
-                <button id="modal-confirm-btn" class="btn-primary">Créer</button>
+                <button type="button" id="modal-cancel-btn" class="btn-secondary">Annuler</button>
+                <button type="button" id="modal-confirm-btn" class="btn-primary">Créer</button>
             </div>
-
         </div>
     </div>   
 
+    <!-- MODALE : PARAMETRES -->
     <div id="parameter-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>Paramètres</h3>
@@ -156,10 +159,10 @@
                 <input type="text" id="edit-name-session-input" placeholder="Nouveau nom..." autocomplete="off">
             </div>
 
-            <div id="modal-time-section" class="modal-form-group">
-                <p> Pomodoro :</p>
+            <div id="settings-time-section" class="modal-form-group">
+                <p>Pomodoro :</p>
                 <input type="number" id="edit-time-work-input" placeholder="25" autocomplete="off">
-                <input type="number" id="edit-time-break-input" placeholder="25" autocomplete="off">
+                <input type="number" id="edit-time-break-input" placeholder="5" autocomplete="off">
             </div>
 
             <div class="session-music-settings">
@@ -169,7 +172,7 @@
                         <option value="lofi">🎧 Lofi</option>
                         <option value="chillout">🌊 Chillout</option>
                         <option value="classical">🎻 Classical</option>
-                        <option value="ambient"> ✨ Ambient</option>
+                        <option value="ambient">✨ Ambient</option>
                         <option value="instrumental">🎹 Instrumental</option>
                     </select>
                 </div>
@@ -178,39 +181,41 @@
                     <select id="settings-break-genre" class="genre-dropdown">
                         <option value="jazz">🎷 Jazz</option>
                         <option value="pop">🎤 Pop</option>
-                        <option value="soul">🕺Soul</option>
+                        <option value="soul">🕺 Soul</option>
                         <option value="indie">🎸 Indie</option>
                         <option value="electronics">🎛️ Electronics</option>
                     </select>
                 </div>
             </div>
             <div class="modal-actions">
-                <button id="parameter-back-btn" class="btn-secondary">Annuler</button>
-                <button id="parameter-save-btn" class="btn-primary">Enregistrer</button>
+                <button type="button" id="parameter-back-btn" class="btn-secondary">Annuler</button>
+                <button type="button" id="parameter-save-btn" class="btn-primary">Enregistrer</button>
             </div>
         </div>
     </div>
 
+    <!-- MODALE : SUPPRESSION -->
     <div id="delete-modal" class="modal-overlay">
         <div class="modal-content">
             <h3>Supprimer la session</h3>
             <p id="delete-modal-text">Voulez-vous vraiment supprimer cette session ?</p>
             <div class="modal-actions">
-                <button id="delete-cancel-btn" class="btn-secondary">Annuler</button>
-                <button id="delete-confirm-btn" class="btn-danger" style="background-color: #ff3131; color: white;">Supprimer</button>
+                <button type="button" id="delete-cancel-btn" class="btn-secondary">Annuler</button>
+                <button type="button" id="delete-confirm-btn" class="btn-danger">Supprimer</button>
             </div>
         </div>
     </div>
 
+    <!-- BANNIERE DE MISE A JOUR -->
     <div id="update-banner" class="update-banner hidden">
         <span class="update-message">
-            🍅 Une nouvelle version de TomatoFlow est disponible! 
+            🍅 Une nouvelle version de TomatoFlow est disponible ! 
             <a href="https://github.com/M1chigan/TomatoFlow/releases" target="_blank" class="update-link">Download</a>
         </span>
-        <button id="close-update-banner" class="close-banner-btn">✕</button>
+        <button type="button" id="close-update-banner" class="close-banner-btn">✕</button>
     </div>
 
     <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>

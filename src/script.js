@@ -1,6 +1,18 @@
 'use strict';
 
 //================================
+//  Tauri imports
+//================================
+
+// Accessing APIs via global window object (Vanilla JS)
+const { getVersion } = window.__TAURI__.app;
+const { listen } = window.__TAURI__.event;
+
+// Plugin global references (if enabled in Tauri v2)
+const { load } = window.__TAURI_PLUGIN_STORE__;
+const { register } = window.__TAURI_PLUGIN_GLOBAL_SHORTCUT__;
+
+//================================
 //  Configuration
 //================================
 
@@ -25,6 +37,9 @@ let currentMode        = 'focus';
 const usedStations     = new Set();
 let flowQueue          = [];
 
+// TAURI: persistent store reference
+let tauriStore          = null;
+
 //================================
 //  DOM Targeting
 //================================
@@ -42,13 +57,12 @@ const vinyl                 = document.querySelector('.lucide-disc-3');
 const refreshBtn            = document.getElementById('refresh-music-btn');
 const wrapper               = document.querySelector('.track-title-wrapper');
 
-
 // Session elements
 const sessionsListContainer = document.getElementById('sessions-list');
 const addSessionBtn         = document.getElementById('add-session-btn');
 const suppSessionBtn        = document.getElementById('supp-session-btn');
 
-//Session Add window elements
+// Session Add window elements
 const sessionModal          = document.getElementById('session-modal');
 const newSessionInput       = document.getElementById('new-session-input');
 const modalCancelBtn        = document.getElementById('modal-cancel-btn');
@@ -58,14 +72,13 @@ const creationBreakSelect   = document.getElementById('creation-break-genre');
 const settingsFocusSelect   = document.getElementById('settings-focus-genre');
 const settingsBreakSelect   = document.getElementById('settings-break-genre');
 
-
-//Session Supp window elements
+// Session Supp window elements
 const deleteModal           = document.getElementById('delete-modal');
 const deleteModalText       = document.getElementById('delete-modal-text');
 const deleteCancelBtn       = document.getElementById('delete-cancel-btn');
 const deleteConfirmBtn      = document.getElementById('delete-confirm-btn');
 
-//Parameter Window
+// Parameter Window
 const parameterModal         = document.getElementById('parameter-modal');
 const parameterNameModalText = document.getElementById('parameter-name-modal-text');
 const editNameSessionInput   = document.getElementById('edit-name-session-input'); 
@@ -114,7 +127,7 @@ function showNotification(message) {
 
 function pickStation(stations) {
     const fresh = stations.filter(s => !usedStations.has(s.stationuuid));
-    if (!fresh.length) usedStations.clear(); // reset si tout a été joué
+    if (!fresh.length) usedStations.clear();
     const pick = fresh[Math.floor(Math.random() * fresh.length)];
     usedStations.add(pick.stationuuid);
     return pick;
@@ -124,7 +137,6 @@ async function fetchStations(genre) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
 
-    // Recherche en parallèle par tag ET par nom
     const [byTag, byName] = await Promise.all([
         fetch(
             `https://de1.api.radio-browser.info/json/stations/bytag/${genre}?limit=20&hidebroken=true&order=votes&reverse=true&codec=MP3&bitrateMin=128`,
@@ -164,7 +176,6 @@ function checkTitleOverflow(originalText) {
         const decoratedText = originalText + spacer;
         
         trackTitleDisplay.innerText = decoratedText + decoratedText;
-        
         trackTitleDisplay.classList.add('is-scrolling');
     }
 }
@@ -225,7 +236,6 @@ async function preloadNextMusic(nextMode) {
 
 function fetchAndPlayBackgroundMusic(mode = 'focus', action = "normal") {
     const genre = getGenreForMode(mode);
-    
     const fadeDuration = (action === "refresh") ? 3000 : 7000;
     
     if (action === "refresh" && refreshBtn) {
@@ -243,20 +253,20 @@ function fetchAndPlayBackgroundMusic(mode = 'focus', action = "normal") {
         console.log(`LOG [Music Backup]: Pas de préchargement, appel direct...`);
         updateBannerTitle(`Chargement ${genre}...`);
         
-    fetchStations(genre)
-        .then(stations => {
-            if (stations.length) {
-                const station = pickStation(stations);
-                updateBannerTitle(`${station.name}`);
-                playStation(station.url_resolved, fadeDuration);
-            } else {
+        fetchStations(genre)
+            .then(stations => {
+                if (stations.length) {
+                    const station = pickStation(stations);
+                    updateBannerTitle(`${station.name}`);
+                    playStation(station.url_resolved, fadeDuration);
+                } else {
+                    if (refreshBtn) refreshBtn.classList.remove('is-loading');
+                }
+            })
+            .catch(err => {
+                console.error("Error direct load:", err);
                 if (refreshBtn) refreshBtn.classList.remove('is-loading');
-            }
-        })
-        .catch(err => {
-            console.error("Error direct load:", err);
-            if (refreshBtn) refreshBtn.classList.remove('is-loading');
-        });
+            });
     }
 }
 
@@ -345,7 +355,6 @@ function playStation(streamUrl, fadeDuration = 7000) {
                         console.log("LOG [Player]: Lecture annulée par un appel de pause rapide.");
                     } else {
                         console.error("LOG [Player Error]: Impossible de lire ce flux.", err);
-                        // Only retry if this failure belongs to the latest request
                         if (streamUrl === latestStreamUrl) {
                             fetchAndPlayBackgroundMusic(currentMode);
                         }
@@ -446,6 +455,16 @@ function pauseMusic() {
     console.log("LOG [Player]: Emergency stop! All audio streams paused instantly.");
 }
 
+function toggleMute() {
+    if (!currentAudio) return;
+    currentAudio.muted = !currentAudio.muted;
+
+    if (volumeIcon) {
+        volumeIcon.textContent = currentAudio.muted ? "🔇" : (parseFloat(volumeSlider?.value ?? 0.5) < 0.4 ? "🔈" : "🔊");
+    }
+    console.log(`LOG [Tauri]: Mute toggled -> ${currentAudio.muted}`);
+}
+
 //================================
 //  Timer Logic
 //================================
@@ -540,7 +559,6 @@ function getNoteKey() {
 function updateLineNumbers() {
     if (!notepad || !lineNumbersContainer) return;
     
-    // Use innerText to reliably count text lines in a contenteditable div
     const lines = notepad.innerText.split('\n');
     const computedStyle = window.getComputedStyle(notepad);
     const lineHeight = parseFloat(computedStyle.lineHeight) || 21;
@@ -559,7 +577,6 @@ window.switchSessionNotes = function() {
     const key = getNoteKey();
     const savedNote = localStorage.getItem(key);
     
-    // Use innerHTML to restore native checkbox components correctly
     notepad.innerHTML = savedNote !== null ? savedNote : '';
     updateLineNumbers();
 };
@@ -584,45 +601,63 @@ if (notepad) {
         }
     });
 
-notepad.addEventListener('keydown', (event) => {
-    const selection = window.getSelection();
-    if (!selection.rangeCount) return;
-    const range = selection.getRangeAt(0);
-
-    if (event.ctrlKey && event.key.toLowerCase() === 'b') {
-        event.preventDefault();
-
+    notepad.addEventListener('keydown', (event) => {
         const selection = window.getSelection();
         if (!selection.rangeCount) return;
         const range = selection.getRangeAt(0);
 
-        const startContainer = range.startContainer;
-        const currentElement = startContainer.nodeType === Node.ELEMENT_NODE 
-            ? startContainer 
-            : startContainer.parentElement;
+        if (event.ctrlKey && event.key.toLowerCase() === 'b') {
+            event.preventDefault();
 
-        const existingTaskRow = currentElement?.closest('.task-row');
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return;
+            const range = selection.getRangeAt(0);
 
-        if (!existingTaskRow) {
-            const taskRow = document.createElement('div');
-            taskRow.className = 'task-row';
+            const startContainer = range.startContainer;
+            const currentElement = startContainer.nodeType === Node.ELEMENT_NODE 
+                ? startContainer 
+                : startContainer.parentElement;
 
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.className = 'task-checkbox';
+            const existingTaskRow = currentElement?.closest('.task-row');
 
-            const taskText = document.createElement('span');
-            taskText.className = 'task-text';
-            taskText.innerHTML = '&nbsp;'; 
+            if (!existingTaskRow) {
+                const taskRow = document.createElement('div');
+                taskRow.className = 'task-row';
 
-            taskRow.appendChild(checkbox);
-            taskRow.appendChild(taskText);
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'task-checkbox';
 
-            range.deleteContents();
-            range.insertNode(taskRow);
+                const taskText = document.createElement('span');
+                taskText.className = 'task-text';
+                taskText.innerHTML = '&nbsp;'; 
 
-            range.setStart(taskText, 0);
-            range.setEnd(taskText, 0);
+                taskRow.appendChild(checkbox);
+                taskRow.appendChild(taskText);
+
+                range.deleteContents();
+                range.insertNode(taskRow);
+
+                range.setStart(taskText, 0);
+                range.setEnd(taskText, 0);
+                selection.removeAllRanges();
+                selection.addRange(range);
+
+                updateLineNumbers();
+                localStorage.setItem(getNoteKey(), notepad.innerHTML);
+                return;
+            }
+        }
+
+        if (event.key === 'Tab') {
+            event.preventDefault(); 
+
+            const tabNode = document.createTextNode('\u00A0\u00A0\u00A0\u00A0');
+            
+            range.insertNode(tabNode);
+
+            range.setStartAfter(tabNode);
+            range.setEndAfter(tabNode);
             selection.removeAllRanges();
             selection.addRange(range);
 
@@ -630,121 +665,104 @@ notepad.addEventListener('keydown', (event) => {
             localStorage.setItem(getNoteKey(), notepad.innerHTML);
             return;
         }
-    }
 
-    if (event.key === 'Tab') {
-        event.preventDefault(); 
+        if (event.key === 'Enter') {
+            const targetNode = range.startContainer;
+            const taskRow = targetNode.nodeType === Node.ELEMENT_NODE 
+                ? targetNode.closest('.task-row') 
+                : targetNode.parentElement.closest('.task-row');
 
-        const tabNode = document.createTextNode('\u00A0\u00A0\u00A0\u00A0');
-        
-        range.insertNode(tabNode);
+            if (taskRow) {
+                event.preventDefault();
+                const taskText = taskRow.querySelector('.task-text');
 
-        range.setStartAfter(tabNode);
-        range.setEndAfter(tabNode);
-        selection.removeAllRanges();
-        selection.addRange(range);
+                const newTaskRow = document.createElement('div');
+                newTaskRow.className = 'task-row';
 
-        updateLineNumbers();
-        localStorage.setItem(getNoteKey(), notepad.innerHTML);
-        return;
-    }
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'task-checkbox';
 
-    if (event.key === 'Enter') {
-        const targetNode = range.startContainer;
-        const taskRow = targetNode.nodeType === Node.ELEMENT_NODE 
-            ? targetNode.closest('.task-row') 
-            : targetNode.parentElement.closest('.task-row');
+                const newTaskText = document.createElement('span');
+                newTaskText.className = 'task-text';
 
-        if (taskRow) {
-            event.preventDefault();
-            const taskText = taskRow.querySelector('.task-text');
+                if (taskText) {
+                    const trailingRange = range.cloneRange();
+                    trailingRange.setEndAfter(taskText);
+                    const extractedContent = trailingRange.extractContents();
 
-            const newTaskRow = document.createElement('div');
-            newTaskRow.className = 'task-row';
+                    if (extractedContent.textContent.replace(/\u00A0/g, ' ').trim() === '') {
+                        newTaskText.innerHTML = '&nbsp;';
+                    } else {
+                        newTaskText.appendChild(extractedContent);
+                    }
 
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.className = 'task-checkbox';
-
-            const newTaskText = document.createElement('span');
-            newTaskText.className = 'task-text';
-
-            if (taskText) {
-                const trailingRange = range.cloneRange();
-                trailingRange.setEndAfter(taskText);
-                const extractedContent = trailingRange.extractContents();
-
-                if (extractedContent.textContent.replace(/\u00A0/g, ' ').trim() === '') {
-                    newTaskText.innerHTML = '&nbsp;';
+                    if (taskText.innerHTML.replace(/\u00A0/g, ' ').trim() === '') {
+                        taskText.innerHTML = '&nbsp;';
+                    }
                 } else {
-                    newTaskText.appendChild(extractedContent);
+                    newTaskText.innerHTML = '&nbsp;';
                 }
 
-                if (taskText.innerHTML.replace(/\u00A0/g, ' ').trim() === '') {
-                    taskText.innerHTML = '&nbsp;';
-                }
-            } else {
-                newTaskText.innerHTML = '&nbsp;';
-            }
-
-            newTaskRow.appendChild(checkbox);
-            newTaskRow.appendChild(newTaskText);
-            
-            taskRow.after(newTaskRow);
-
-            const newRange = document.createRange();
-            newRange.setStart(newTaskText, 0);
-            newRange.setEnd(newTaskText, 0);
-            selection.removeAllRanges();
-            selection.addRange(newRange);
-
-            updateLineNumbers();
-            localStorage.setItem(getNoteKey(), notepad.innerHTML);
-            return;
-        }
-    }
-
-    if (event.key === 'Backspace') {
-        const targetNode = range.startContainer;
-        
-        const taskRow = targetNode.nodeType === Node.ELEMENT_NODE 
-            ? targetNode.closest('.task-row') 
-            : targetNode.parentElement.closest('.task-row');
-
-        if (taskRow) {
-            const taskText = taskRow.querySelector('.task-text');
-            if (taskText) {
-                const checkRange = range.cloneRange();
-                checkRange.setStart(taskText, 0);
-                checkRange.setEnd(range.startContainer, range.startOffset);
+                newTaskRow.appendChild(checkbox);
+                newTaskRow.appendChild(newTaskText);
                 
-                const textBeforeCursor = checkRange.toString().replace(/\u00A0/g, ' ').trim();
+                taskRow.after(newTaskRow);
 
-                if (textBeforeCursor === '') {
-                    event.preventDefault();
+                const newRange = document.createRange();
+                newRange.setStart(newTaskText, 0);
+                newRange.setEnd(newTaskText, 0);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+
+                updateLineNumbers();
+                localStorage.setItem(getNoteKey(), notepad.innerHTML);
+                return;
+            }
+        }
+
+        if (event.key === 'Backspace') {
+            const targetNode = range.startContainer;
+            
+            const taskRow = targetNode.nodeType === Node.ELEMENT_NODE 
+                ? targetNode.closest('.task-row') 
+                : targetNode.parentElement.closest('.task-row');
+
+            if (taskRow) {
+                const taskText = taskRow.querySelector('.task-text');
+                if (taskText) {
+                    const checkRange = range.cloneRange();
+                    checkRange.setStart(taskText, 0);
+                    checkRange.setEnd(range.startContainer, range.startOffset);
                     
-                    const plainLine = document.createElement('div');
-                    
-                    plainLine.innerHTML = (taskText.innerHTML === '&nbsp;' || taskText.innerHTML === '') 
-                        ? '<br>' 
-                        : taskText.innerHTML;
-                    
-                    taskRow.replaceWith(plainLine);
-                    
-                    const newRange = document.createRange();
-                    newRange.selectNodeContents(plainLine);
-                    newRange.collapse(true);
-                    selection.removeAllRanges();
-                    selection.addRange(newRange);
-                    
-                    updateLineNumbers();
-                    localStorage.setItem(getNoteKey(), notepad.innerHTML);
+                    const textBeforeCursor = checkRange.toString().replace(/\u00A0/g, ' ').trim();
+
+                    if (textBeforeCursor === '') {
+                        event.preventDefault();
+                        
+                        const plainLine = document.createElement('div');
+                        
+                        plainLine.innerHTML = (taskText.innerHTML === '&nbsp;' || taskText.innerHTML === '') 
+                            ? '<br>' 
+                            : taskText.innerHTML;
+                        
+                        taskRow.replaceWith(plainLine);
+                        
+                        const newRange = document.createRange();
+                        newRange.selectNodeContents(plainLine);
+                        newRange.collapse(true);
+                        selection.removeAllRanges();
+                        selection.addRange(newRange);
+                        
+                        updateLineNumbers();
+                        localStorage.setItem(getNoteKey(), notepad.innerHTML);
+                    }
                 }
             }
         }
-    }
-});
+    });
 }
+
 //================================
 //  Session Management & Interface
 //================================
@@ -760,7 +778,22 @@ function loadSessionsFromStorage() {
 
     if (storedSessions) {
         try {
-            sessions = JSON.parse(storedSessions);
+            const parsed = JSON.parse(storedSessions);
+            if (Array.isArray(parsed)) {
+                // Safely convert legacy string-based sessions to full objects
+                sessions = parsed.map(s => {
+                    if (typeof s === 'string') {
+                        return {
+                            name: s,
+                            workTime: DEFAULT_WORK_DURATION,
+                            breakTime: DEFAULT_BREAK_DURATION,
+                            focusGenre: "lofi",
+                            breakGenre: "jazz"
+                        };
+                    }
+                    return s;
+                });
+            }
         } catch (e) {
             sessions = [];
         }
@@ -787,28 +820,31 @@ function renderSessionsList() {
     sessionsListContainer.innerHTML = ''; 
 
     sessions.forEach(session => {
+        const sessionName = (typeof session === 'object' && session !== null) ? session.name : session;
+        if (!sessionName) return;
+
         const sessionItem = document.createElement('div');
         sessionItem.classList.add('session-item');
         
-        if (session.name === activeSessionName) {
+        if (sessionName === activeSessionName) {
             sessionItem.classList.add('active');
         }
 
-        sessionItem.setAttribute('draggable', true);
+        sessionItem.setAttribute('draggable', 'true');
         
         sessionItem.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', session.name);
+            // Indique à WebView2 qu'il s'agit d'une copie
+            e.dataTransfer.effectAllowed = 'copy';
+            e.dataTransfer.setData('text/plain', sessionName);
             sessionItem.style.opacity = '0.5'; 
         });
 
         sessionItem.addEventListener('dragend', () => {
             sessionItem.style.opacity = '1'; 
-        })
-        
-        sessionItem.textContent = `- ${session.name}`;
-        sessionItem.addEventListener('click', () => {
-            selectSession(session.name);
         });
+        
+        sessionItem.textContent = `- ${sessionName}`;
+        sessionItem.addEventListener('click', () => selectSession(sessionName));
 
         sessionsListContainer.appendChild(sessionItem);
     });
@@ -844,47 +880,84 @@ function initFlowDragAndDrop() {
     const flowListContainer = document.getElementById('flow-list');
     const clearFlowBtn = document.getElementById('clear-flow-btn');
 
-    if (!flowListContainer || !clearFlowBtn) return;
+    if (!flowListContainer) return;
 
-    flowListContainer.addEventListener('dragenter', (e) => { e.preventDefault(); flowListContainer.classList.add('drag-over'); });
-    flowListContainer.addEventListener('dragover', (e) => e.preventDefault());
-    flowListContainer.addEventListener('dragleave', () => flowListContainer.classList.remove('drag-over'));
-    
+    // ==========================================
+    // 1. Drop zone : Ajouter une session au Flow
+    // ==========================================
+    flowListContainer.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        flowListContainer.classList.add('drag-over');
+    });
+
+    flowListContainer.addEventListener('dragover', (e) => {
+        e.preventDefault(); // Authorizes drop in WebView2
+        e.dataTransfer.dropEffect = 'copy';
+    });
+
+    flowListContainer.addEventListener('dragleave', () => {
+        flowListContainer.classList.remove('drag-over');
+    });
+
     flowListContainer.addEventListener('drop', (e) => {
         e.preventDefault();
         flowListContainer.classList.remove('drag-over');
+
         const sessionName = e.dataTransfer.getData('text/plain');
-        if (sessionName && e.dataTransfer.types.includes('text/plain')) {
+        if (sessionName) {
             addSessionToFlow(sessionName);
         }
     });
 
-    clearFlowBtn.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        clearFlowBtn.classList.add('trash-hover'); 
-    });
+    // ==========================================
+    // 2. Delete zone : Supprimer un élément du Flow
+    // ==========================================
+    if (clearFlowBtn) {
+        clearFlowBtn.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            clearFlowBtn.classList.add('trash-hover');
+        });
 
-    clearFlowBtn.addEventListener('dragleave', () => {
-        clearFlowBtn.classList.remove('trash-hover');
-    });
+        clearFlowBtn.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Authorizes drop in WebView2
+            e.dataTransfer.dropEffect = 'move';
+        });
 
-    clearFlowBtn.addEventListener('drop', (e) => {
-        e.preventDefault();
-        clearFlowBtn.classList.remove('trash-hover');
-        
-        const flowIndex = e.dataTransfer.getData('text/flow-index');
-        
-        if (flowIndex !== '') {
-            flowQueue.splice(parseInt(flowIndex, 10), 1);
-            renderFlowList();
-            showNotification("🗑️ Session retirée du Flow.");
-        }
-    });
+        clearFlowBtn.addEventListener('dragleave', () => {
+            clearFlowBtn.classList.remove('trash-hover');
+        });
+
+        clearFlowBtn.addEventListener('drop', (e) => {
+            e.preventDefault();
+            clearFlowBtn.classList.remove('trash-hover');
+
+            // Retrieve stored index from flow element
+            const flowIndex = e.dataTransfer.getData('text/flow-index') || e.dataTransfer.getData('text/plain');
+
+            if (flowIndex !== null && flowIndex !== '') {
+                const index = parseInt(flowIndex, 10);
+                if (!isNaN(index) && index >= 0 && index < flowQueue.length) {
+                    flowQueue.splice(index, 1);
+                    renderFlowList();
+                    if (typeof showNotification === 'function') {
+                        showNotification("🗑️ Session retirée du Flow.");
+                    }
+                }
+            }
+        });
+    }
 }
 
 function addSessionToFlow(sessionName) {
-    const sessionExists = sessions.some(s => s.name === sessionName);
-    if (!sessionExists) return;
+    const sessionExists = sessions.some(s => {
+        const name = (typeof s === 'object' && s !== null) ? s.name : s;
+        return name && name.trim() === sessionName;
+    });
+    
+    if (!sessionExists) {
+        console.warn(`La session "${sessionName}" n'existe pas dans la liste des sessions.`);
+        return;
+    }
 
     flowQueue.push(sessionName);
     renderFlowList();
@@ -904,7 +977,6 @@ function renderFlowList() {
         setTimeout(() => {
             const wrapper = document.getElementById('current-flow-wrapper');
             if (wrapper && currentFlowSessionElem.scrollWidth > wrapper.clientWidth) {
-                // Duplicates text with spaces so the -50% translateX animation loops seamlessly
                 currentFlowSessionElem.textContent = `${sessionName} \u00A0\u00A0\u00A0\u00A0 ${sessionName} \u00A0\u00A0\u00A0\u00A0`;
                 currentFlowSessionElem.classList.add('is-scrolling');
             }
@@ -935,9 +1007,12 @@ function renderFlowList() {
         flowItem.classList.add('flow-item');
         flowItem.textContent = `${index + 1}. ${sessionName}`;
         
-        flowItem.setAttribute('draggable', true);
+        flowItem.setAttribute('draggable', 'true');
         flowItem.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/flow-index', index);
+            e.stopPropagation();
+            e.dataTransfer.setData('text/flow-index', String(index));
+            e.dataTransfer.setData('text/plain', String(index));
+            e.dataTransfer.effectAllowed = 'move';
             flowItem.style.opacity = '0.4';
         });
         flowItem.addEventListener('dragend', () => {
@@ -1075,7 +1150,7 @@ function openParameterModal() {
     if (workInput) workInput.value = currentSession.workTime / 60;
     if (breakInput) breakInput.value = currentSession.breakTime / 60;
     if (settingsFocusSelect) settingsFocusSelect.value = currentSession.focusGenre || 'lofi';
-    if (settingsBreakSelect) settingsBreakSelect.value = currentSession.breakGenre
+    if (settingsBreakSelect) settingsBreakSelect.value = currentSession.breakGenre || 'jazz';
 
     if (parameterModal) parameterModal.classList.add('open');
 }
@@ -1136,7 +1211,6 @@ function saveParameterChanges() {
     const genreChanged = (currentMode === 'focus' && currentSession.focusGenre !== oldFocusGenre) ||
                          (currentMode === 'pause' && currentSession.breakGenre !== oldBreakGenre);
 
-
     if (genreChanged) {
         console.log(`[Parameters] Genre changed mid-session. Refreshing stream for mode: ${currentMode}`);
         fetchAndPlayBackgroundMusic(currentMode, "refresh");
@@ -1164,17 +1238,14 @@ async function checkLatestRelease() {
     });
 
     try {
-        const currentVersion = await window.electronAPI.getVersion();
+        const currentVersion = await getVersion();
 
         const response = await fetch(`https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/latest`);
         if (!response.ok) return;
 
         const data = await response.json();
-        
-        // Clean tag name (e.g., converts "v1.0.4" to "1.0.4")
         const latestVersion = data.tag_name.replace('v', '').trim();
 
-        // Compare the dynamic version with GitHub's latest tag
         if (latestVersion !== currentVersion) {
             banner.classList.remove('hidden');
         }
@@ -1184,27 +1255,63 @@ async function checkLatestRelease() {
 }
 
 //================================
+//  TAURI Integration
+//================================
+
+async function initTauriIntegration() {
+    try {
+        tauriStore = await load('preferences.json', { autoSave: true });
+
+        const savedVolume = await tauriStore.get('volume');
+        if (savedVolume !== null && savedVolume !== undefined) {
+            if (volumeSlider) volumeSlider.value = savedVolume;
+            if (currentAudio) currentAudio.volume = savedVolume;
+            if (volumeIcon) {
+                volumeIcon.textContent = savedVolume == 0 ? "🔇" : (savedVolume < 0.4 ? "🔈" : "🔊");
+            }
+        }
+
+        // Global shortcuts wrapped in try-catch to prevent crash on reloads
+        try {
+            await register('CommandOrControl+Shift+M', () => toggleMute());
+        } catch (e) {
+            console.warn("Shortcut Ctrl+Shift+M already registered or ignored on reload:", e);
+        }
+
+        try {
+            await register('CommandOrControl+Shift+Right', () => {
+                fetchAndPlayBackgroundMusic(currentMode, "refresh");
+            });
+        } catch (e) {
+            console.warn("Shortcut Ctrl+Shift+Right already registered or ignored on reload:", e);
+        }
+
+        await listen('tray-toggle-mute', () => toggleMute());
+
+        console.log("LOG [Tauri]: Store, global shortcuts and tray listener initialized.");
+    } catch (error) {
+        console.error("LOG [Tauri Init Error]:", error);
+    }
+}
+
+//================================
 //  Initialization & Event Listeners
 //================================
 
 document.addEventListener('DOMContentLoaded', () => {
     
-//================================
-//        Initialization 
-//================================
+    // Initialization 
     loadSessionsFromStorage();
     renderSessionsList();
     updateDisplay();
     window.switchSessionNotes();
     initDefaultStation(currentMode);
     checkLatestRelease();
-    initFlowDragAndDrop()
+    initFlowDragAndDrop();
     renderFlowList();
+    initTauriIntegration();
 
-//================================
-//        Event Listeners
-//================================
-
+    // Event Listeners
     if (startBtn) startBtn.addEventListener('click', startTimer);
     if (pauseBtn) pauseBtn.addEventListener('click', pauseTimer);
 
@@ -1222,6 +1329,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentAudio) {
                 currentAudio.volume = volumeValue;
             }
+
+            if (tauriStore) {
+                tauriStore.set('volume', parseFloat(volumeValue));
+            }
             
             if (parseFloat(volumeValue) === 0) {
                 volumeIcon.textContent = "🔇";
@@ -1233,7 +1344,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Live update radio if user tweaks selections within the Settings panel directly
     if (settingsFocusSelect) {
         settingsFocusSelect.addEventListener('change', (e) => {
             const currentSession = getActiveSession();
@@ -1324,3 +1434,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener('resize', updateLineNumbers);
 });
+
+document.addEventListener('dragover', (e) => e.preventDefault());
+document.addEventListener('drop', (e) => e.preventDefault());
