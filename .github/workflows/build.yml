@@ -1,8 +1,9 @@
 name: Build/Release TomatoFlow
 
 on:
-  release:
-    types: [published, created]
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -29,6 +30,12 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      # ⚡ Accélère les builds sur GitHub en évitant de recompiler les 200 paquets
+      - name: Cache Rust dependencies
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
       - name: Install Dependencies
         run: npm install
 
@@ -37,7 +44,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'TomatoFlow ${{ github.ref_name }}'
-          releaseDraft: false
+          tagName: v__VERSION__ 
+          releaseName: 'TomatoFlow v__VERSION__'
+          releaseDraft: true 
           prerelease: false
